@@ -1,0 +1,33 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "windows": {
+                "command": "cmake -Bbuild -GNinja -DCMAKE_MAKE_PROGRAM=\"${workspaceFolder}/toolchain/bin/ninja.exe\"; cmake --build build --clean-first "
+            },
+            "options": {},
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Deploy",
+            "type": "shell",
+            "windows": {
+                "command": "curl.exe -T build/${workspaceFolderBasename}.bin --ftp-create-dirs ftp://${config:consoleIp}/dev_hdd0/plugins/kernel/${workspaceFolderBasename}.bin"
+            },
+            "options": {},
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

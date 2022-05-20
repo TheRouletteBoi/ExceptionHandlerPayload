@@ -1,0 +1,2 @@
+#define HAS_DEBUG_PRINTS
+//#define SYS_CALLS_HOOK
