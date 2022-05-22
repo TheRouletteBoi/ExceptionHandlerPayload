@@ -16,7 +16,7 @@ add_compile_options(
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 
-add_executable("${PROJECT_NAME}.elf" "src/crt0.s" "src/HookAsm.s" "src/Libc.cpp" "src/Hooks.cpp" "src/Hex.cpp" "src/UserMemory.cpp" "src/Exploit.cpp" "src/SpinLock.s" "src/Main.cpp" "src/LV2/LV2.cpp" )
+add_executable("${PROJECT_NAME}.elf" "src/crt0.s" "src/HookAsm.s" "src/Libc.cpp" "src/Hooks.cpp" "src/Hex.cpp" "src/UserMemory.cpp" "src/SpinLock.s" "src/Main.cpp" "src/LV2/LV2.cpp" )
 
 add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
     COMMENT Create ${PROJECT_NAME}.bin
