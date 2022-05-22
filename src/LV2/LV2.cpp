@@ -226,32 +226,33 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN( "7C 7C 1B 78 7C 9D 23 78 7F F2 02 A6 7F D3 02 A6 91 81 ?? ?? 7C 08 02 A6" ).FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.ppuThreadMsgInterruptException = (uint32_t*)(result - 0x28);
-            
+            cxt.ppu_thread_msg_interrupt_exception_opd = Signature::FindProcedureDescriptor(result - 0x28, cxt.kernelLastOPDEntry);   
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
         
 
-    if (g_LibLV2.lv2_console_get_instance_opd == 0 ||
-        g_LibLV2.lv2_console_write_opd        == 0 || 
-        g_LibLV2.lv2_console_write_async_opd  == 0 || 
-        g_LibLV2.printf                       == 0 )
+    if (g_LibLV2.lv2_console_get_instance_opd           == 0 ||
+        g_LibLV2.lv2_console_write_opd                  == 0 || 
+        g_LibLV2.lv2_console_write_async_opd            == 0 || 
+        g_LibLV2.printf                                 == 0 ||
+        g_LibLV2.ppu_thread_msg_interrupt_exception_opd == 0)
     {
         return LIB_LV2_ADDRESS_NOT_FOUND;
     }
 
-    DEBUG_PRINT("lv2_console_get_instance_opd 0x%llx\n", g_LibLV2.lv2_console_get_instance_opd);
-    DEBUG_PRINT("lv2_console_write_opd 0x%llx\n",        g_LibLV2.lv2_console_write_opd);
-    DEBUG_PRINT("lv2_console_write_async_opd 0x%llx\n",  g_LibLV2.lv2_console_write_async_opd);
-    DEBUG_PRINT("lv2_console_putc_opd 0x%llx\n",         g_LibLV2.lv2_console_putc_opd);
-    DEBUG_PRINT("lv2_console_flush_opd 0x%llx\n",        g_LibLV2.lv2_console_flush_opd);
-    DEBUG_PRINT("lv2_clprintf_opd 0x%llx\n",             g_LibLV2.lv2_clprintf_opd);
-    DEBUG_PRINT("lv2_kern_tty_write 0x%llx\n",           g_LibLV2.lv2_kern_tty_write);
-    DEBUG_PRINT("page_allocate_opd 0x%llx\n",            g_LibLV2.page_allocate_opd);
-    DEBUG_PRINT("page_free_opd 0x%llx\n",                g_LibLV2.page_free_opd);
-    DEBUG_PRINT("kmem_export_to_proc_opd 0x%llx\n",      g_LibLV2.kmem_export_to_proc_opd);
-    DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",    g_LibLV2.kmem_unexport_from_proc_opd);
+    DEBUG_PRINT("lv2_console_get_instance_opd 0x%llx\n",                g_LibLV2.lv2_console_get_instance_opd);
+    DEBUG_PRINT("lv2_console_write_opd 0x%llx\n",                       g_LibLV2.lv2_console_write_opd);
+    DEBUG_PRINT("lv2_console_write_async_opd 0x%llx\n",                 g_LibLV2.lv2_console_write_async_opd);
+    DEBUG_PRINT("lv2_console_putc_opd 0x%llx\n",                        g_LibLV2.lv2_console_putc_opd);
+    DEBUG_PRINT("lv2_console_flush_opd 0x%llx\n",                       g_LibLV2.lv2_console_flush_opd);
+    DEBUG_PRINT("lv2_clprintf_opd 0x%llx\n",                            g_LibLV2.lv2_clprintf_opd);
+    DEBUG_PRINT("lv2_kern_tty_write 0x%llx\n",                          g_LibLV2.lv2_kern_tty_write);
+    DEBUG_PRINT("page_allocate_opd 0x%llx\n",                           g_LibLV2.page_allocate_opd);
+    DEBUG_PRINT("page_free_opd 0x%llx\n",                               g_LibLV2.page_free_opd);
+    DEBUG_PRINT("kmem_export_to_proc_opd 0x%llx\n",                     g_LibLV2.kmem_export_to_proc_opd);
+    DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",                   g_LibLV2.kmem_unexport_from_proc_opd);
+    DEBUG_PRINT("ppu_thread_msg_interrupt_exception_opd 0x%llx\n",      g_LibLV2.ppu_thread_msg_interrupt_exception_opd);
 
     return LIB_LV2_INIT_SUCCESS;
 }

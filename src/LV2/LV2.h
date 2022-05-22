@@ -42,9 +42,9 @@ struct LibLV2Context
     OPD_t* page_free_opd;
     OPD_t* kmem_export_to_proc_opd;
     OPD_t* kmem_unexport_from_proc_opd;
+    OPD_t* ppu_thread_msg_interrupt_exception_opd;
 
     uint32_t* systemCallDispatchBranch;
-    uint32_t* ppuThreadMsgInterruptException;
 
     int(*lv2_kern_tty_write)(const char* text, size_t length);
     void(*printf)(const char* fmt, ... );
