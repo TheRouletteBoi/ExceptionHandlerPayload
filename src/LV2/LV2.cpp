@@ -103,7 +103,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     if (g_LibLV2.systemCallTable == NULL)
         return LIB_LV2_SYSCALL_TABLE_NOT_FOUND;
 
-    MAKE_PATTERN( "7D A8 03 A6 4E 80 00 21" ).FindCodeMatch(
+    MAKE_PATTERN("7D A8 03 A6 4E 80 00 21").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.systemCallDispatchBranch = (uint32_t*)(result + 4);
@@ -136,7 +136,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "?? ?? ?? ?? 7F 84 E3 78 7F A5 EB 78 ?? ?? ?? ?? 7F 83 E3 78 7F A4 07 B4 ?? ?? ?? ??" ).FindCodeMatches(
+    MAKE_PATTERN("?? ?? ?? ?? 7F 84 E3 78 7F A5 EB 78 ?? ?? ?? ?? 7F 83 E3 78 7F A4 07 B4 ?? ?? ?? ??").FindCodeMatches(
         g_LibLV2.systemCallTable[SYS_CONSOLE_WRITE]->Function, 0x200, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             const auto branchAddress = PPCGetBranchAddress(result + 0x18);
@@ -150,7 +150,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "E9 22 ?? ?? 88 09 00 00 2F 80 00 00 41 9E ?? ?? E8 62" ).FindCodeMatch(
+    MAKE_PATTERN("E9 22 ?? ?? 88 09 00 00 2F 80 00 00 41 9E ?? ?? E8 62").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.lv2_console_get_instance_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
@@ -158,7 +158,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "7C 1B E8 AE 3B ?? 00 01 3B ?? ?? ?? 2F 80 00 0A" ).FindCodeMatches(
+    MAKE_PATTERN("7C 1B E8 AE 3B ?? 00 01 3B ?? ?? ?? 2F 80 00 0A").FindCodeMatches(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             auto offset = 0x68UL;
@@ -179,7 +179,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "7C 80 23 78 7C A9 2B 78 7C CB 33 78 7C E8 3B 78 7C 64 1B 78 7C 05 03 78 7D 26 4B 78 7D 67 5B 78" ).FindCodeMatch(
+    MAKE_PATTERN("7C 80 23 78 7C A9 2B 78 7C CB 33 78 7C E8 3B 78 7C 64 1B 78 7C 05 03 78 7D 26 4B 78 7D 67 5B 78").FindCodeMatch(
         LV2_BASE, 0x80000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.page_allocate_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
@@ -187,7 +187,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "7C 64 1B 78 38 A0 00 09 38 60 00 00" ).FindCodeMatch(
+    MAKE_PATTERN("7C 64 1B 78 38 A0 00 09 38 60 00 00").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[] ( LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             const auto branchAddress = PPCGetBranchAddress(result + 0xC);
@@ -201,7 +201,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "7F A0 48 00 3D 20 80 01 7C DF 33 78 2F 25 00 00" ).FindCodeMatch(
+    MAKE_PATTERN("7F A0 48 00 3D 20 80 01 7C DF 33 78 2F 25 00 00").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.kmem_export_to_proc_opd = Signature::FindProcedureDescriptor(result - 0x18, cxt.kernelLastOPDEntry);
@@ -209,7 +209,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "E8 83 00 58 E8 63 00 68 4B ?? ?? ??" ).FindCodeMatch(
+    MAKE_PATTERN("E8 83 00 58 E8 63 00 68 4B ?? ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             const auto branchAddress = PPCGetBranchAddress(result + 0x8);
@@ -223,10 +223,19 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
-    MAKE_PATTERN( "7C 7C 1B 78 7C 9D 23 78 7F F2 02 A6 7F D3 02 A6 91 81 ?? ?? 7C 08 02 A6" ).FindCodeMatch(
+    MAKE_PATTERN("7C 7C 1B 78 7C 9D 23 78 7F F2 02 A6 7F D3 02 A6 91 81 ?? ?? 7C 08 02 A6").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.ppu_thread_msg_interrupt_exception_opd = Signature::FindProcedureDescriptor(result - 0x28, cxt.kernelLastOPDEntry);   
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
+
+    MAKE_PATTERN("38 A0 ?? ?? 4B ?? ?? ?? E8 82 ?? ?? E8 62 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 4B ?? ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            cxt.ppuThreadMsgInterruptExceptionBranch = (uint32_t*)(result + 0x1C);
+
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
