@@ -56,5 +56,10 @@ static inline void sys_timer_usleep(usecond_t microseconds)
     SYSCALL_FN(&sys_timer_usleep, SYS_TIMER_USLEEP)(microseconds);
 }
 
+static inline void ppu_thread_msg_interrupt_exception(uint64_t thread_obj, uint64_t tb_value)
+{
+    STATIC_FN(&ppu_thread_msg_interrupt_exception, g_LibLV2.ppu_thread_msg_interrupt_exception_opd)(thread_obj, tb_value);
+}
+
 
 }
