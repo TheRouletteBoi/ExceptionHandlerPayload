@@ -6,7 +6,12 @@ set(CMAKE_SYSTEM_PROCESSOR          powerpc64)
 # Without that flag CMake is not able to pass test compilation check
 set(CMAKE_TRY_COMPILE_TARGET_TYPE   STATIC_LIBRARY)
 
-set(PS3_PPU_TOOLCHAIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/toolchain/bin/)
+if(WIN32)
+set(PS3_PPU_TOOLCHAIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/toolchain/bin/win-x86_64/)
+elseif(APPLE)
+set(PS3_PPU_TOOLCHAIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/toolchain/bin/apple-arm64/)
+endif()
+
 set(triple powerpc64-eabi-freebsd-elfv1)
 
 set(CMAKE_LINKER ${PS3_PPU_TOOLCHAIN_PATH}ld${CMAKE_EXECUTABLE_SUFFIX})
