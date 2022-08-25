@@ -46,6 +46,7 @@ typedef __builtin_va_list	va_list;
 #define va_copy		__builtin_va_copy
 #define va_end(ap)		__builtin_va_end(ap)
 
+#define INLINE inline __attribute__((always_inline))
 #define NO_INLINE __attribute__((noinline)) 
 
 #endif // TYPES_H
