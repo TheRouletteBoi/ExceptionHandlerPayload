@@ -7,7 +7,7 @@
             "label": "Build",
             "type": "shell",
             "windows": {
-                "command": "cmake -Bbuild -GNinja -DCMAKE_MAKE_PROGRAM=\"${workspaceFolder}/toolchain/bin/ninja.exe\"; cmake --build build --clean-first "
+                "command": "cmake -Bbuild -GNinja -DCMAKE_MAKE_PROGRAM=\"${workspaceFolder}/toolchain/bin/win-x86_64/ninja.exe\"; cmake --build build --clean-first "
             },
             "options": {},
             "problemMatcher": [],
