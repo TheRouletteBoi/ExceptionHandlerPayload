@@ -59,6 +59,20 @@ void* memmove(void* destination, void const* source, size_t size)
     return result;
 }
 
+int memcmp(const void* destination, const void* source, size_t size)
+{
+	if (size != 0) 
+    {
+		const unsigned char* p1 = (const unsigned char*)destination, *p2 = (const unsigned char*)source;
+
+		do {
+			if (*p1++ != *p2++)
+				return (*--p1 - *--p2);
+		} while (--size != 0);
+	}
+	return 0;
+}
+
 int strcmp(char const* string1, char const* string2)
 {
     int result = 0;
@@ -121,4 +135,21 @@ char* strncat(char* destination, const char* source, size_t count)
     *destination = '\0';
 
     return start;
+}
+
+char* strstr(const char *haystack, const char *needle)
+{
+    if (!haystack) 
+        return 0;
+
+    size_t n = strlen(needle);
+
+    if (n == 0)
+        return 0;
+    
+    while (*haystack)
+        if (!memcmp(haystack++, needle, n))
+            return (char*)(haystack - 1);
+
+    return 0;
 }
