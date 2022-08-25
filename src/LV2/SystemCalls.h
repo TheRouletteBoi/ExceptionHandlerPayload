@@ -262,6 +262,8 @@
 #define SYS_DECI3_CLOSE                                             882
 #define SYS_DECI3_SEND                                              883
 #define SYS_DECI3_RECEIVE                                           884
+#define SYS_DBG_READ_PROCESS_MEMORY                                 904
+#define SYS_DBG_WRITE_PROCESS_MEMORY                                905
 
 #define SYSCALL_F(T, index) ((T)g_LibLV2.systemCallTable[index])
 #define SYSCALL_FN(T, index) ((decltype(T))g_LibLV2.systemCallTable[index])
