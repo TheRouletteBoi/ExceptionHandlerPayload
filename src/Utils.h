@@ -40,4 +40,12 @@ namespace Utils {
 #define CLASS_FN(T, instance, address) Utils::ClassFnPtrCast<decltype(T)>(instance, address)
 #define STATIC_FN(T, address) ((decltype(T))address)
 
+template <typename R, typename... TArgs>
+inline __attribute__((always_inline)) R Lv2Call(uint64_t addr, TArgs... args)
+{
+    volatile OPD_t opd = { addr, g_LibLV2.kernelTOC, 0 };
+    R(*func)(TArgs...) = (R(*)(TArgs...))&opd;
+    return func(args...);
+}
+
 #endif // !UTILS_H
