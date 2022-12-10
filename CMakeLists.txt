@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+
 set(CMAKE_TOOLCHAIN_FILE toolchain/toolchain.cmake)
 project("ExceptionHandlerPayload" C CXX ASM)
 
