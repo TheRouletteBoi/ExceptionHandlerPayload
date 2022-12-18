@@ -34,6 +34,12 @@ static inline int id_table_unreserve_id(void* objectList, void* processHandle)
     return STATIC_FN(&id_table_unreserve_id, g_LibLV2.id_table_unreserve_id_opd)(objectList, processHandle);
 }
 
+static inline int unreserve_process_handle(void* processHandle)
+{
+    void** processList = (void**)(*(uint64_t*)(g_LibLV2.kernelTOC + 0x20E0)); // 0x20E0 offset varies per firmware. TODO: find offset using patter scanner
+    return id_table_unreserve_id(*processList, processHandle);
+}
+
 static inline process* get_process_by_pid(sys_pid_t pid)
 {
     process* processObject = NULL;

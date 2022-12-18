@@ -12,16 +12,13 @@
 #include "UserMemory.h"
 #include "Hex.h"
 
-int sys_dbg_read_process_memory(lv2::sys_pid_t pid, void* destination, size_t size, void* source);
-int dumpCounter = 0;
 //extern "C" void PpuThreadMsgInterruptExceptionHookPrepare();
-
 
 volatile int SystemCallLock;
 extern "C" void SystemCallHookPrepareDispatch();
-extern "C" void SystemCallHookProcess(SystemCallContext* callContext)
+extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 {
-    if (callContext->index == SYS_DBG_WRITE_PROCESS_MEMORY) // TODO: add check for CEX consoles only
+    if (syscall->index == SYS_DBG_WRITE_PROCESS_MEMORY) // TODO: add check for CEX consoles only
     {
         lv2::process* process = lv2::get_current_process();
         if (process != nullptr)
@@ -35,41 +32,63 @@ extern "C" void SystemCallHookProcess(SystemCallContext* callContext)
                 {
                     DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
 
-                    uint32_t      procId = callContext->get_arg<uint32_t>(0);
-                    lv2::process* currentProcess = lv2::get_process_by_pid(procId);
 
-                    if (currentProcess)
+                    // Method #1 use syscall 8
+                    auto ps3mapi_set_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, const void* source, size_t size), 8 );
+
+                    DEBUG_PRINT("ps3mapi_set_process_memory opd 0x%llx\n", ps3mapi_set_process_memory);
+
+                    auto pid = syscall->get_arg<lv2::sys_pid_t>(0);
+                    auto destination = syscall->get_arg<void*>(1);
+                    auto size = syscall->get_arg<size_t>(2);
+                    auto source = syscall->get_arg<const void*>(3);
+
+                    DEBUG_PRINT("pid 0x%llx\n", pid);
+                    DEBUG_PRINT("destination 0x%llx\n", destination);
+                    DEBUG_PRINT("size 0x%llx\n", size);
+                    DEBUG_PRINT("source 0x%llx\n", source);
+
+                    DEBUG_PRINT("ps3mapi_set_process_memory\n");
+                    auto Error = ps3mapi_set_process_memory(0x7777, 0x0032, pid, destination, source, size);
+                    DEBUG_PRINT("Error 0x%X\n", Error);
+                    
+
+                    // method #2 recreate sys_dbg_write_process_memory
+                    /*auto applicationPid = syscall->get_arg<lv2::sys_pid_t>(0);
+                    if (process->processID == applicationPid)
                     {
-                        DEBUG_PRINT("addr 0x%llx | size 0x%llx\n", callContext->get_arg<uint64_t>(1), callContext->get_arg<uint64_t>(2));
-                        lv2::process_write_memory(currentProcess, callContext->get_arg<void*>(1), callContext->get_arg<void*>(3), callContext->get_arg<uint64_t>(2), 1);
-                    }
+                        DEBUG_PRINT("addr 0x%llx | size 0x%llx\n", syscall->get_arg<uint64_t>(1), syscall->get_arg<uint64_t>(2));
+                        lv2::process_write_memory(applicationProcess, syscall->get_arg<void*>(1), syscall->get_arg<void*>(3), syscall->get_arg<uint64_t>(2), 1);
+                    }*/
 
-                    //void** processList = (void**)(*(uint64_t*)(g_LibLV2.kernelTOC + 0x20E0));
-                    //lv2::id_table_unreserve_id(*processList, handle);
+                    //lv2::unreserve_process_handle(processHandle);
                 }
             }
         }
     }
 
-    if (callContext->index == SYS_DBG_READ_PROCESS_MEMORY)
+    if (syscall->index == SYS_DBG_READ_PROCESS_MEMORY)
     {
-        //DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
+        DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
 
-        // call the original method #1
-        //STATIC_FN( &sys_dbg_read_process_memory, &callContext->handler )( callContext->args[0], (void*)callContext->args[1], callContext->args[2], (void*)callContext->args[3] );
+        auto ps3mapi_get_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, void* source, size_t size), 8 );
 
-        // call the original method #2
-        //auto Error = sys_dbg_read_process_memory(callContext->args[0], callContext->args[1], callContext->args[2], callContext->args[3]);
+        auto pid = syscall->get_arg<lv2::sys_pid_t>(0);
+        auto destination = syscall->get_arg<void*>(1);
+        auto size = syscall->get_arg<size_t>(2);
+        auto source = syscall->get_arg<void*>(3);
 
-        //DEBUG_PRINT("Error: 0x%llX\n", Error);
+        DEBUG_PRINT("ps3mapi_get_process_memory\n");
+        auto Error = ps3mapi_get_process_memory(0x7777, 0x0031, pid, destination, source, size);
+        DEBUG_PRINT("Error 0x%X\n", Error);
 
-        // hook for HEN/CEX. We might need kmalloc and copy_from_user
-        /*uint32_t      procId = callContext->args[0];
-        lv2::process* process = lv2::get_process_by_pid(procId);
 
-        if (process)
+
+
+        /*auto applicationPid = syscall->get_arg<lv2::sys_pid_t>(0);
+        if (process->processID == applicationPid)
         {
-            lv2::process_read_memory(process, (void*)callContext->args[1], (void*)callContext->args[2], callContext->args[3]);
+            lv2::process_read_memory(applicationProcess, syscall->get_arg<void*>(1), syscall->get_arg<void*>(2), syscall->get_arg<uint64_t>(3));
         }*/
     }
 }
