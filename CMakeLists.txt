@@ -8,7 +8,7 @@ message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 message(STATUS "The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
 add_link_options(
-    -T${CMAKE_SOURCE_DIR}/src/Linker
+    -T${CMAKE_SOURCE_DIR}/src/Linker.x
     -nostartfiles -nostdlib -nodefaultlibs -Wl,--gc-sections,-static,--undefined=PayloadEntry
 )
 

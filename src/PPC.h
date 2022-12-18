@@ -207,7 +207,7 @@ static void PatchInJump(uint64_t address, uint64_t destination, bool linked)
 
     memcpy((void*)address, stubInstructions, sizeof(stubInstructions));
 
-    PPCFlushInstructionCache((void*)address, 4 * 7);
+    PPCFlushInstructionCache((void*)address, sizeof(stubInstructions));
 }
 
 static void HookFunctionStart(uint64_t address, uint64_t destination, uint64_t stub)
@@ -235,7 +235,7 @@ static void HookFunctionStart(uint64_t address, uint64_t destination, uint64_t s
     stubInstructions[13] = 0x4E800420;
 
     memcpy((void*)stub, stubInstructions, sizeof(stubInstructions));
-    PPCFlushInstructionCache((void*)stub, 4 * 13);
+    PPCFlushInstructionCache((void*)stub, sizeof(stubInstructions));
 
     PatchInJump(address, destination, false);
 }

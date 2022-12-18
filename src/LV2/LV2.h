@@ -43,6 +43,10 @@ struct LibLV2Context
     OPD_t* kmem_export_to_proc_opd;
     OPD_t* kmem_unexport_from_proc_opd;
     OPD_t* ppu_thread_msg_interrupt_exception_opd;
+    OPD_t* process_write_memory_opd;
+    OPD_t* process_read_memory_opd;
+    OPD_t* get_process_object_by_id_opd;
+    OPD_t* id_table_unreserve_id_opd;
 
     uint32_t* systemCallDispatchBranch;
     uint32_t* ppuThreadMsgInterruptExceptionBranch;

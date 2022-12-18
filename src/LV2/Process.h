@@ -2,8 +2,11 @@
 #define LV2_PROCESS_H
 
 #include "../Types.h"
+#include "../Utils.h"
 
 namespace lv2 {
+
+typedef uint32_t sys_pid_t;
 
 class process 
 {
@@ -21,6 +24,41 @@ public:
     const char* imageName;
 };
 
+static inline int get_process_object_by_id(sys_pid_t pid, process** outProcessObject, void** outProcessHandle)
+{
+    return STATIC_FN(&get_process_object_by_id, g_LibLV2.get_process_object_by_id_opd)(pid, outProcessObject, outProcessHandle);
+}
+
+static inline int id_table_unreserve_id(void* objectList, void* processHandle)
+{
+    return STATIC_FN(&id_table_unreserve_id, g_LibLV2.id_table_unreserve_id_opd)(objectList, processHandle);
+}
+
+static inline process* get_process_by_pid(sys_pid_t pid)
+{
+    process* processObject = NULL;
+    void*    processHandle = NULL;
+
+    auto error = get_process_object_by_id(pid, &processObject, &processHandle);
+
+    if (error)
+    {
+        DEBUG_PRINT( "lv2::get_process_object_entry_and_address_by_id error: %x\n", error);
+        return NULL;
+    }
+
+    return processObject;
+}
+
+static inline uint32_t process_write_memory(lv2::process* process, void* destination, void* source, size_t size, int flag)
+{
+    return STATIC_FN(&process_write_memory, g_LibLV2.process_write_memory_opd)(process, destination, source, size, flag);
+}
+
+static inline uint32_t process_read_memory(lv2::process* process, void* destination, void* source, size_t size)
+{
+    return STATIC_FN(&process_read_memory, g_LibLV2.process_read_memory_opd)(process, destination, source, size);
+}
 
 }
 

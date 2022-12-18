@@ -4,5 +4,6 @@
         "objs": true,
     },
     "consoleIp": "192.168.0.46",
-    "C_Cpp.errorSquiggles":"Disabled",
+    "C_Cpp.errorSquiggles": "Disabled",
+    "cmake.configureOnOpen": false,
 }

@@ -12,40 +12,66 @@
 #include "UserMemory.h"
 #include "Hex.h"
 
-volatile int SystemCallLock;
-
-extern "C" void SystemCallHookPrepareDispatch();
+int sys_dbg_read_process_memory(lv2::sys_pid_t pid, void* destination, size_t size, void* source);
+int dumpCounter = 0;
 //extern "C" void PpuThreadMsgInterruptExceptionHookPrepare();
 
+
+volatile int SystemCallLock;
+extern "C" void SystemCallHookPrepareDispatch();
 extern "C" void SystemCallHookProcess(SystemCallContext* callContext)
 {
-    /*if (callContext->index == _SYS_PRX_LOAD_MODULE)
+    if (callContext->index == SYS_DBG_WRITE_PROCESS_MEMORY) // TODO: add check for CEX consoles only
     {
-        lv2::process* process  lv2::get_current_process();
+        lv2::process* process = lv2::get_current_process();
         if (process != nullptr)
         {
-            if (process->ImageName != nullptr)
+            if (process->imageName != nullptr)
             {
-                if (NonCryptoHashFNV1A64(process->ImageName) == NonCryptoHashFNV1A64("/app_home/PS3_GAME/USRDIR/EBOOT.BIN")
-                    || NonCryptoHashFNV1A64(process->ImageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
-                    || strstr(process->ImageName, "PS3_GAME/USRDIR/")
-                    || strstr(process->ImageName, "hdd0/game/"))
+                if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
+                    || NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
+                    || strstr(process->imageName, "PS3_GAME/USRDIR/")
+                    || strstr(process->imageName, "hdd0/game/"))
                 {
-                    STATIC_FN(&sys_prx_load_module, &callContext->handler)(callContext->args[0], callContext->args[1], callContext->args[2]);
+                    DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
+
+                    uint32_t      procId = callContext->get_arg<uint32_t>(0);
+                    lv2::process* currentProcess = lv2::get_process_by_pid(procId);
+
+                    if (currentProcess)
+                    {
+                        DEBUG_PRINT("addr 0x%llx | size 0x%llx\n", callContext->get_arg<uint64_t>(1), callContext->get_arg<uint64_t>(2));
+                        lv2::process_write_memory(currentProcess, callContext->get_arg<void*>(1), callContext->get_arg<void*>(3), callContext->get_arg<uint64_t>(2), 1);
+                    }
+
+                    //void** processList = (void**)(*(uint64_t*)(g_LibLV2.kernelTOC + 0x20E0));
+                    //lv2::id_table_unreserve_id(*processList, handle);
                 }
             }
         }
     }
 
-    if (callContext->index == SYS_DBG_WRITE_PROCESS_MEMORY)
-    {
-        process_write_memory(proc, callContext->args[1], callContext->args[3], callContext->args[2], 1);
-    }
-
     if (callContext->index == SYS_DBG_READ_PROCESS_MEMORY)
     {
-        // TODO...
-    }*/
+        //DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
+
+        // call the original method #1
+        //STATIC_FN( &sys_dbg_read_process_memory, &callContext->handler )( callContext->args[0], (void*)callContext->args[1], callContext->args[2], (void*)callContext->args[3] );
+
+        // call the original method #2
+        //auto Error = sys_dbg_read_process_memory(callContext->args[0], callContext->args[1], callContext->args[2], callContext->args[3]);
+
+        //DEBUG_PRINT("Error: 0x%llX\n", Error);
+
+        // hook for HEN/CEX. We might need kmalloc and copy_from_user
+        /*uint32_t      procId = callContext->args[0];
+        lv2::process* process = lv2::get_process_by_pid(procId);
+
+        if (process)
+        {
+            lv2::process_read_memory(process, (void*)callContext->args[1], (void*)callContext->args[2], callContext->args[3]);
+        }*/
+    }
 }
 
 /*void PpuThreadMsgInterruptExceptionOriginal(...)

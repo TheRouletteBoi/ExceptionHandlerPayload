@@ -235,10 +235,44 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.ppuThreadMsgInterruptExceptionBranch = (uint32_t*)(result + 0x1C);
-
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
+
+    MAKE_PATTERN("7C BE ?? ?? 7C 9D ?? ?? 7C DC ?? ?? 7C FB ?? ?? 63 FF ?? ?? 7C 7A ?? ?? 40 82 ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            cxt.process_write_memory_opd = Signature::FindProcedureDescriptor(result - 0x2C, cxt.kernelLastOPDEntry);
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
+
+    MAKE_PATTERN("F8 21 ?? ?? 7C 08 ?? ?? 2C 25 ?? ?? FB E1 ?? ?? 3F E0 ?? ?? FB 61 ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            cxt.process_read_memory_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
+
+    MAKE_PATTERN("4B ?? ?? ?? 2F 83 ?? ?? 7F A4 ?? ?? 7F 65 ?? ?? 7F 86 ?? ?? 38 E0 ?? ?? 41 ?? ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            cxt.get_process_object_by_id_opd = Signature::FindProcedureDescriptor(result - 0x24, cxt.kernelLastOPDEntry);
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
+
+    MAKE_PATTERN("7C 68 ?? ?? 7C 20 04 AC 38 00 ?? ?? 7D 40 ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            cxt.id_table_unreserve_id_opd = Signature::FindProcedureDescriptor(result - 0x1C, cxt.kernelLastOPDEntry);
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
+
+
+    
         
 
     if (g_LibLV2.lv2_console_get_instance_opd           == 0 ||

@@ -41,11 +41,22 @@ namespace Utils {
 #define STATIC_FN(T, address) ((decltype(T))address)
 
 template <typename R, typename... TArgs>
-inline __attribute__((always_inline)) R Lv2Call(uint64_t addr, TArgs... args)
+inline __attribute__((always_inline)) R call_by_addr(uint64_t addr, TArgs... args)
 {
     volatile OPD_t opd = { addr, g_LibLV2.kernelTOC, 0 };
     R(*func)(TArgs...) = (R(*)(TArgs...))&opd;
     return func(args...);
+}
+
+template <typename R, typename... TArgs>
+inline __attribute__((always_inline)) R call_by_opd(OPD_t* opd, TArgs... args)
+{
+    if (opd->Function && opd->TOC) 
+	{
+		R(*func)(TArgs...) = (R(*)(TArgs...))opd;
+		return func(args...);
+	}
+	return (R)0;
 }
 
 #endif // !UTILS_H
