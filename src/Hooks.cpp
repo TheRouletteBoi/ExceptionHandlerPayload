@@ -18,13 +18,6 @@ volatile int SystemCallLock;
 extern "C" void SystemCallHookPrepareDispatch();
 extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 {
-    auto sys_dbg_get_console_type = SYSCALL_F(int(*)(uint64_t* type), SYS_DBG_GET_CONSOLE_TYPE );
-
-    uint64_t consoleType = 0;
-    auto _Error = sys_dbg_get_console_type(&consoleType);
-    bool isCex = consoleType == 1;
-
-
     if (syscall->index == SYS_DBG_WRITE_PROCESS_MEMORY) // TODO: add check for CEX consoles only
     {
         lv2::process* process = lv2::get_current_process();
@@ -38,12 +31,6 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
                     || strstr(process->imageName, "hdd0/game/"))
                 {
                     DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
-
-                    // 1=CEX
-                    // 2=DEX
-                    // 3=TOOL
-                    DEBUG_PRINT("_Error %d\n", _Error);
-                    DEBUG_PRINT("consoleType %d\n", consoleType);
 
                     auto pid = syscall->get_arg<lv2::sys_pid_t>(0);
                     auto destination = syscall->get_arg<void*>(1);
@@ -93,6 +80,11 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
                     auto destination = syscall->get_arg<void*>(1);
                     auto source = syscall->get_arg<void*>(2);
                     auto size = syscall->get_arg<uint64_t>(3);
+
+                    DEBUG_PRINT("pid 0x%llx\n", pid);
+                    DEBUG_PRINT("destination 0x%llx\n", destination);
+                    DEBUG_PRINT("size 0x%llx\n", size);
+                    DEBUG_PRINT("source 0x%llx\n", source);
 
 
                     // Method #1 use syscall 8
