@@ -18,6 +18,13 @@ volatile int SystemCallLock;
 extern "C" void SystemCallHookPrepareDispatch();
 extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 {
+    auto sys_dbg_get_console_type = SYSCALL_F(int(*)(uint64_t* type), SYS_DBG_GET_CONSOLE_TYPE );
+
+    uint64_t consoleType = 0;
+    auto _Error = sys_dbg_get_console_type(&consoleType);
+    bool isCex = consoleType == 1;
+
+
     if (syscall->index == SYS_DBG_WRITE_PROCESS_MEMORY) // TODO: add check for CEX consoles only
     {
         lv2::process* process = lv2::get_current_process();
@@ -32,34 +39,35 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
                 {
                     DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
 
-
-                    // Method #1 use syscall 8
-                    auto ps3mapi_set_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, const void* source, size_t size), 8 );
-
-                    DEBUG_PRINT("ps3mapi_set_process_memory opd 0x%llx\n", ps3mapi_set_process_memory);
+                    // 1=CEX
+                    // 2=DEX
+                    // 3=TOOL
+                    DEBUG_PRINT("_Error %d\n", _Error);
+                    DEBUG_PRINT("consoleType %d\n", consoleType);
 
                     auto pid = syscall->get_arg<lv2::sys_pid_t>(0);
                     auto destination = syscall->get_arg<void*>(1);
-                    auto size = syscall->get_arg<size_t>(2);
-                    auto source = syscall->get_arg<const void*>(3);
+                    auto size = syscall->get_arg<uint64_t>(2);
+                    auto source = syscall->get_arg<void*>(3);
 
                     DEBUG_PRINT("pid 0x%llx\n", pid);
                     DEBUG_PRINT("destination 0x%llx\n", destination);
                     DEBUG_PRINT("size 0x%llx\n", size);
                     DEBUG_PRINT("source 0x%llx\n", source);
 
+
+                    // Method #1 use syscall 8
+                    /*auto ps3mapi_set_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, void* source, uint64_t size), 8 );
                     DEBUG_PRINT("ps3mapi_set_process_memory\n");
                     auto Error = ps3mapi_set_process_memory(0x7777, 0x0032, pid, destination, source, size);
-                    DEBUG_PRINT("Error 0x%X\n", Error);
+                    DEBUG_PRINT("Error 0x%X\n", Error);*/
                     
 
                     // method #2 recreate sys_dbg_write_process_memory
-                    /*auto applicationPid = syscall->get_arg<lv2::sys_pid_t>(0);
-                    if (process->processID == applicationPid)
+                    if (process->processID == pid)
                     {
-                        DEBUG_PRINT("addr 0x%llx | size 0x%llx\n", syscall->get_arg<uint64_t>(1), syscall->get_arg<uint64_t>(2));
-                        lv2::process_write_memory(applicationProcess, syscall->get_arg<void*>(1), syscall->get_arg<void*>(3), syscall->get_arg<uint64_t>(2), 1);
-                    }*/
+                        lv2::process_write_memory(process, destination, source, size, 1);
+                    }
 
                     //lv2::unreserve_process_handle(processHandle);
                 }
@@ -69,27 +77,39 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 
     if (syscall->index == SYS_DBG_READ_PROCESS_MEMORY)
     {
-        DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
-
-        auto ps3mapi_get_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, void* source, size_t size), 8 );
-
-        auto pid = syscall->get_arg<lv2::sys_pid_t>(0);
-        auto destination = syscall->get_arg<void*>(1);
-        auto size = syscall->get_arg<size_t>(2);
-        auto source = syscall->get_arg<void*>(3);
-
-        DEBUG_PRINT("ps3mapi_get_process_memory\n");
-        auto Error = ps3mapi_get_process_memory(0x7777, 0x0031, pid, destination, source, size);
-        DEBUG_PRINT("Error 0x%X\n", Error);
-
-
-
-
-        /*auto applicationPid = syscall->get_arg<lv2::sys_pid_t>(0);
-        if (process->processID == applicationPid)
+        lv2::process* process = lv2::get_current_process();
+        if (process != nullptr)
         {
-            lv2::process_read_memory(applicationProcess, syscall->get_arg<void*>(1), syscall->get_arg<void*>(2), syscall->get_arg<uint64_t>(3));
-        }*/
+            if (process->imageName != nullptr)
+            {
+                if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
+                    || NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
+                    || strstr(process->imageName, "PS3_GAME/USRDIR/")
+                    || strstr(process->imageName, "hdd0/game/"))
+                {
+                    DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
+
+                    auto pid = syscall->get_arg<lv2::sys_pid_t>(0);
+                    auto destination = syscall->get_arg<void*>(1);
+                    auto source = syscall->get_arg<void*>(2);
+                    auto size = syscall->get_arg<uint64_t>(3);
+
+
+                    // Method #1 use syscall 8
+                    /*auto ps3mapi_get_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, void* source, uint64_t size), 8 );
+                    DEBUG_PRINT("ps3mapi_get_process_memory\n");
+                    auto Error = ps3mapi_get_process_memory(0x7777, 0x0031, pid, destination, source, size);
+                    DEBUG_PRINT("Error 0x%X\n", Error);*/
+
+
+                    // Method #2 recreate sys_dbg_write_process_memory
+                    if (process->processID == pid)
+                    {
+                        lv2::process_read_memory(process, destination, source, size);
+                    }
+                }
+            }
+        }
     }
 }
 
