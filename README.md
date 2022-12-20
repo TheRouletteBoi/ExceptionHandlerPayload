@@ -2,11 +2,11 @@
  Automatically quit to XMB if a GameOS thread has crashed
  
  ## Features
- - Automatically quit to XMB if a GameOS thread has crashed
- - Dump thread exceptions to file
- - Override EBOOT path for your own path
- - Override SPRX path for you own path
- - Ability to use DEX Menus on HEN/CEX by redirecting syscalls
+ - WIP: Automatically quit to XMB if a GameOS thread has crashed
+ - TODO: Dump thread exceptions to file
+ - TODO: Override EBOOT path for your own path
+ - TODO: Override SPRX path for you own path
+ - WIP: Ability to use DEX Menus on HEN/CEX by redirecting syscalls
  
 
 ## Installation
