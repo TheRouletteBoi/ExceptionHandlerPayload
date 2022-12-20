@@ -9,7 +9,7 @@ struct SystemCallContext
 
 
     template <typename T>
-    T get_arg(size_t index)
+    T GetArg(size_t index)
     {
         return (T)args[index];
     }
