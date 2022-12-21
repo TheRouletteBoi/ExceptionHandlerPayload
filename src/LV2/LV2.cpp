@@ -271,6 +271,14 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
+    MAKE_PATTERN("F8 21 ?? ?? 7C 08 ?? ?? FB 81 ?? ?? F8 01 ?? ?? FB A1 ?? ?? 7C 7D ?? ?? 4B ?? ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            cxt.extend_kstack_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
+
 
     
         

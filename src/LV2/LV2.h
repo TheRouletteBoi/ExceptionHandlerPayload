@@ -47,6 +47,7 @@ struct LibLV2Context
     OPD_t* process_read_memory_opd;
     OPD_t* get_process_object_by_id_opd;
     OPD_t* id_table_unreserve_id_opd;
+    OPD_t* extend_kstack_opd;
 
     uint32_t* systemCallDispatchBranch;
     uint32_t* ppuThreadMsgInterruptExceptionBranch;

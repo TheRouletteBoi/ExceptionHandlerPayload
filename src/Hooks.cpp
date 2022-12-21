@@ -17,6 +17,19 @@ static INLINE void *get_secure_user_ptr(void *ptr)
 	return (void *)(((uint64_t)ptr)&0xFFFFFFFF);
 }
 
+namespace lv2 {
+
+/**
+* @brief Extends the kernel stack of the syscall in 4096 bytes. Can only be called once in a syscall
+* @param unk ???
+*/
+static inline uint64_t extend_kstack(uint64_t unk) 
+{
+    return STATIC_FN(&extend_kstack, g_LibLV2.extend_kstack_opd)(unk);
+}
+
+}
+
 //extern "C" void PpuThreadMsgInterruptExceptionHookPrepare();
 
 volatile int SystemCallLock;
@@ -25,6 +38,8 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 {
     if (syscall->index == _SYS_PRX_LOAD_MODULE)
     {
+        //SYSCALL_F(int(*)(uint32_t), SYS_MEMORY_FREE)(0xFFFFFFFF); // calls lv2::extend_kstack for us.
+        //lv2::extend_kstack(0);
         lv2::process* process = lv2::get_current_process();
         if (process != nullptr)
         {
@@ -48,8 +63,28 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
                     // load sprx into game without custom eboot. All games load libsysmodule.sprx
                     if (NonCryptoHashFNV1A64(modulePath) == NonCryptoHashFNV1A64("/dev_flash/sys/external/libsysmodule.sprx"))
                     {
-                        //auto sys_prx_load_module = SYSCALL_F(int(*)(const char* path, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t* pOpt), _SYS_PRX_LOAD_MODULE);
-                        //sys_prx_load_module("/dev_hdd0/plugins/mods/gtav.sprx", 0, NULL);
+                        auto sys_prx_load_module = [process] (const char* path, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t* pOpt) 
+                        {
+                            auto syscall = SYSCALL_F(int(*)(const char* path, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t* pOpt), _SYS_PRX_LOAD_MODULE);
+
+                            auto mem_manager = AllocateUserPage( process, 0x2000 );
+
+                            const auto path_buffer = mem_manager.Get<char>( strlen(path) );
+
+                            memset(path_buffer.Kernel(), 0, strlen(path) + 1);
+                            memcpy(path_buffer.Kernel(), path, strlen(path));
+
+                            const auto option_buffer = mem_manager.Get<lv2::sys_prx_module_info_option_t>( 1 ); 
+
+                            const auto ret = syscall(path_buffer.User(), flags, NULL);
+
+                            FreeUserModePages(process, mem_manager);
+
+                            return ret;
+                        };
+
+                        sys_prx_load_module("/dev_hdd0/tmp/gtav.sprx", 0, NULL);
+
                     }
 
                     // override sprx path when loaded by custom eboot
