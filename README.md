@@ -3,10 +3,10 @@
  
  ## Features
  - WIP: Automatically quit to XMB if a GameOS thread has crashed
+ - WIP: Ability to use DEX Menus on HEN/CEX by redirecting syscalls
  - TODO: Dump thread exceptions to file
  - TODO: Override EBOOT path for your own path
  - TODO: Override SPRX path for you own path
- - WIP: Ability to use DEX Menus on HEN/CEX by redirecting syscalls
  
 
 ## Installation
