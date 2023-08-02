@@ -12,176 +12,211 @@
 #include "UserMemory.h"
 #include "Hex.h"
 
-static INLINE void *get_secure_user_ptr(void *ptr)
+lv2::sys_prx_id_t sys_prx_load_module(
+    const char* path,
+    lv2::sys_prx_flags_t flags, 
+    lv2::sys_prx_load_module_option_t* pOpt
+);
+
+bool IsGameProcess(lv2::process* process)
 {
-	return (void *)(((uint64_t)ptr)&0xFFFFFFFF);
+    if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
+        || NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
+        || strstr(process->imageName, "PS3_GAME/USRDIR/")
+        || strstr(process->imageName, "hdd0/game/"))
+        return true;
+        
+    return false;
 }
 
-namespace lv2 {
-
-/**
-* @brief Extends the kernel stack of the syscall in 4096 bytes. Can only be called once in a syscall
-* @param unk ???
-*/
-static inline uint64_t extend_kstack(uint64_t unk) 
+void SysPrxLoadModuleHook(SystemCallContext* syscall)
 {
-    return STATIC_FN(&extend_kstack, g_LibLV2.extend_kstack_opd)(unk);
+    lv2::process* process = lv2::get_current_process();
+    
+    if (process == nullptr)
+        return;
+        
+    if (process->imageName == nullptr)
+        return;
+
+    if (IsGameProcess(process))
+    {
+        DEBUG_PRINT("_SYS_PRX_LOAD_MODULE\n");
+
+        auto modulePath = syscall->GetArg<const char*>(0);
+        auto flags = syscall->GetArg<lv2::sys_prx_flags_t>(1);
+        auto pOpt = syscall->GetArg<lv2::sys_prx_module_info_option_t*>(2);
+
+        DEBUG_PRINT("modulePath %s\n", modulePath);
+        DEBUG_PRINT("flags 0x%llx\n", flags);
+        DEBUG_PRINT("pOpt 0x%llx\n", pOpt);
+
+
+
+
+        auto memoryManager = AllocateUserPage( process, 0x2000 );
+
+        if (memoryManager.kernelPage == NULL)
+            return;
+
+        const auto sprxModuleInfoOpt = memoryManager.Get<lv2::sys_prx_module_info_option_t>( 1 );
+        const auto sprxModuleInfo    = memoryManager.Get<lv2::sys_prx_module_info_t>( 1 );
+        const auto sprxName          = memoryManager.Get<char>( 256 );
+
+        sprxModuleInfoOpt->size         = 0x10;
+        sprxModuleInfoOpt->moduleInfo32 = sprxModuleInfo.UserAs<uint32_t>();
+
+        sprxModuleInfo->size         = sizeof(lv2::sys_prx_module_info_t);
+        sprxModuleInfo->fileName     = sprxName.UserAs<uint32_t>();
+        sprxModuleInfo->fileNameSize = 256;
+
+        auto sys_prx_get_module_info =  SYSCALL_F(int(*)( lv2::sys_prx_id_t id, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t *pInfo ), _SYS_PRX_GET_MODULE_INFO );
+
+        // TODO(Roulette): replace syscall->args[ xx ] with syscall->GetArg<type>(xx);
+        auto error = sys_prx_get_module_info( syscall->args[ 0 ], 0, sprxModuleInfoOpt.User() );
+
+        DEBUG_PRINT( "sys_prx_load_module: %x %s\n", error, sprxModuleInfo->name );
+
+        STATIC_FN( &sys_prx_load_module, &syscall->handler )((const char*)syscall->args[ 0 ], syscall->args[ 1 ], (lv2::sys_prx_load_module_option_t*)syscall->args[ 2 ] );
+        
+        
+        /*** 
+        * every single game uses libsysmodule.sprx so we will use it to inject our sprx into the game without custom EBOOT
+        * this is useful to load an sprx without the need to create a eboot with sprx loader. this is only for sprx's with 
+        * large sprx which will not work when using sys_prx_load_module() when fully in game or while using a sprx tool injector
+        * NOTE(Roulette): will require a custom syscall??? for us to get new_path from user
+        * EG: custom_syscall_mimic_eboot_sprx_loader("/dev_hdd0/tmp/gtas.sprx");
+        */
+        if (NonCryptoHashFNV1A64(sprxModuleInfo->name) == NonCryptoHashFNV1A64("libsysmodule.sprx"))
+        {
+#if 0
+            // TODO(Roulette): should I replace the string or the pointer to the string??
+
+            // get memory address of arg
+            auto modulePathAddress = &syscall->args[0];
+            //replace string in bytes
+            *(uint64_t*)(modulePathAddress, ???);
+
+            //replace pointer of string
+            modulePath = newPath;
+#endif
+        }
+
+        /***
+         * if the eboot loads a sprx path this function will override sprx path  
+         * NOTE(Roulette): will require a custom syscall??? for us to get old_path and new_path from user
+         * EG: custom_syscall_override_eboot_sprx_loader(old_path, new_path);
+        */
+#if 0
+        if (NonCryptoHashFNV1A64(modulePath) == NonCryptoHashFNV1A64(oldPath))
+        {
+            modulePath = newPath;
+        }
+#endif
+
+        FreeUserModePages( process, memoryManager );
+    }
 }
 
+// TODO: add check for CEX consoles only
+void SysDbgWriteProcessMemoryHook(SystemCallContext* syscall)
+{
+    lv2::process* process = lv2::get_current_process();
+    
+    if (process == nullptr)
+        return;
+        
+    if (process->imageName == nullptr)
+        return;
+
+    if (IsGameProcess(process))
+    {
+        DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
+
+        auto pid = syscall->GetArg<lv2::sys_pid_t>(0);
+        auto destination = syscall->GetArg<void*>(1);
+        auto size = syscall->GetArg<uint64_t>(2);
+        auto source = syscall->GetArg<void*>(3);
+
+        DEBUG_PRINT("pid 0x%llx\n", pid);
+        DEBUG_PRINT("destination 0x%llx\n", destination);
+        DEBUG_PRINT("size 0x%llx\n", size);
+        DEBUG_PRINT("source 0x%llx\n", source);
+
+
+#if 1
+        // method #1 use syscall 8
+        auto syscall8 = SYSCALL_F(int(*)( uint64_t function, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7 ), 8 );
+        DEBUG_PRINT("ps3mapi_set_process_memory\n");
+        auto Error = syscall8(0x7777, 0x0032, syscall->args[ 0 ], syscall->args[ 1 ], syscall->args[ 3 ], syscall->args[ 2 ], 0, 0);
+        DEBUG_PRINT("Error 0x%X\n", Error);
+#else
+        // method #2 recreate sys_dbg_write_process_memory
+        if (process->processID == pid)
+        {
+            lv2::process_write_memory(process, destination, source, size, 1);
+        }
+
+        //lv2::unreserve_process_handle(processHandle);
+#endif
+    }
 }
 
-//extern "C" void PpuThreadMsgInterruptExceptionHookPrepare();
+void SysDbgReadProcessMemoryHook(SystemCallContext* syscall)
+{
+    lv2::process* process = lv2::get_current_process();
+    
+    if (process == nullptr)
+        return;
+        
+    if (process->imageName == nullptr)
+        return;
+
+    if (IsGameProcess(process))
+    {
+        DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
+
+        auto pid = syscall->GetArg<lv2::sys_pid_t>(0);
+        auto destination = syscall->GetArg<void*>(1);
+        auto source = syscall->GetArg<void*>(2);
+        auto size = syscall->GetArg<uint64_t>(3);
+
+        DEBUG_PRINT("pid 0x%llx\n", pid);
+        DEBUG_PRINT("destination 0x%llx\n", destination);
+        DEBUG_PRINT("source 0x%llx\n", source);
+        DEBUG_PRINT("size 0x%llx\n", size);
+
+
+#if 0
+        // method #1 use syscall 8
+        auto ps3mapi_get_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpCode, lv2::sys_pid_t pid, void* destination, void* source, uint64_t size), 8 );
+        DEBUG_PRINT("ps3mapi_get_process_memory\n");
+        auto Error = ps3mapi_get_process_memory(0x7777, 0x0031, pid, destination, source, size);
+        DEBUG_PRINT("Error 0x%X\n", Error);
+#else
+        // Method #2 recreate sys_dbg_read_process_memory
+        if (process->processID == pid)
+        {
+            lv2::process_read_memory(process, destination, source, size);
+        }
+#endif
+    }
+}
 
 volatile int SystemCallLock;
 extern "C" void SystemCallHookPrepareDispatch();
 extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 {
     if (syscall->index == _SYS_PRX_LOAD_MODULE)
-    {
-        //SYSCALL_F(int(*)(uint32_t), SYS_MEMORY_FREE)(0xFFFFFFFF); // calls lv2::extend_kstack for us.
-        //lv2::extend_kstack(0);
-        lv2::process* process = lv2::get_current_process();
-        if (process != nullptr)
-        {
-            if (process->imageName != nullptr)
-            {
-                if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
-                    || NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
-                    || strstr(process->imageName, "PS3_GAME/USRDIR/")
-                    || strstr(process->imageName, "hdd0/game/"))
-                {
-                    DEBUG_PRINT("_SYS_PRX_LOAD_MODULE\n");
+        SysPrxLoadModuleHook(syscall);
 
-                    auto modulePath = syscall->GetArg<const char*>(0);
-                    auto flags = syscall->GetArg<lv2::sys_prx_flags_t>(1);
-                    auto pOpt = syscall->GetArg<lv2::sys_prx_module_info_option_t*>(2);
+    if (syscall->index == SYS_DBG_WRITE_PROCESS_MEMORY)
+        SysDbgWriteProcessMemoryHook(syscall);
 
-                    DEBUG_PRINT("modulePath %s\n", modulePath);
-                    DEBUG_PRINT("flags 0x%llx\n", flags);
-                    DEBUG_PRINT("pOpt 0x%llx\n", pOpt);
-
-                    // load sprx into game without custom eboot. All games load libsysmodule.sprx
-                    if (NonCryptoHashFNV1A64(modulePath) == NonCryptoHashFNV1A64("/dev_flash/sys/external/libsysmodule.sprx"))
-                    {
-                        auto sys_prx_load_module = [process] (const char* path, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t* pOpt) 
-                        {
-                            auto syscall = SYSCALL_F(int(*)(const char* path, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t* pOpt), _SYS_PRX_LOAD_MODULE);
-
-                            auto mem_manager = AllocateUserPage( process, 0x2000 );
-
-                            const auto path_buffer = mem_manager.Get<char>( strlen(path) );
-
-                            memset(path_buffer.Kernel(), 0, strlen(path) + 1);
-                            memcpy(path_buffer.Kernel(), path, strlen(path));
-
-                            const auto option_buffer = mem_manager.Get<lv2::sys_prx_module_info_option_t>( 1 ); 
-
-                            const auto ret = syscall(path_buffer.User(), flags, NULL);
-
-                            FreeUserModePages(process, mem_manager);
-
-                            return ret;
-                        };
-
-                        sys_prx_load_module("/dev_hdd0/tmp/gtav.sprx", 0, NULL);
-
-                    }
-
-                    // override sprx path when loaded by custom eboot
-                    if (NonCryptoHashFNV1A64(modulePath) == NonCryptoHashFNV1A64("/dev_hdd0/tmp/gtas.sprx"))
-                    {
-                        //modulePath = "/dev_hdd0/plugins/mods/gtas.sprx";
-                    }
-                }
-            }
-        }
-    }
-
-    if (syscall->index == SYS_DBG_WRITE_PROCESS_MEMORY) // TODO: add check for CEX consoles only
-    {
-        lv2::process* process = lv2::get_current_process();
-        if (process != nullptr)
-        {
-            if (process->imageName != nullptr)
-            {
-                if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
-                    || NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
-                    || strstr(process->imageName, "PS3_GAME/USRDIR/")
-                    || strstr(process->imageName, "hdd0/game/"))
-                {
-                    DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
-
-                    auto pid = syscall->GetArg<lv2::sys_pid_t>(0);
-                    auto destination = syscall->GetArg<void*>(1);
-                    auto size = syscall->GetArg<uint64_t>(2);
-                    auto source = syscall->GetArg<void*>(3);
-
-                    DEBUG_PRINT("pid 0x%llx\n", pid);
-                    DEBUG_PRINT("destination 0x%llx\n", destination);
-                    DEBUG_PRINT("size 0x%llx\n", size);
-                    DEBUG_PRINT("source 0x%llx\n", source);
-
-
-                    // Method #1 use syscall 8
-                    /*auto ps3mapi_set_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, void* source, uint64_t size), 8 );
-                    DEBUG_PRINT("ps3mapi_set_process_memory\n");
-                    auto Error = ps3mapi_set_process_memory(0x7777, 0x0032, pid, destination, source, size);
-                    DEBUG_PRINT("Error 0x%X\n", Error);*/
-                    
-
-                    // method #2 recreate sys_dbg_write_process_memory
-                    if (process->processID == pid)
-                    {
-                        lv2::process_write_memory(process, destination, source, size, 1);
-                    }
-
-                    //lv2::unreserve_process_handle(processHandle);
-                }
-            }
-        }
-    }
-
+#if 0
     if (syscall->index == SYS_DBG_READ_PROCESS_MEMORY)
-    {
-        lv2::process* process = lv2::get_current_process();
-        if (process != nullptr)
-        {
-            if (process->imageName != nullptr)
-            {
-                if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
-                    || NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/dev_bdvd/PS3_GAME/USRDIR/EBOOT.BIN")
-                    || strstr(process->imageName, "PS3_GAME/USRDIR/")
-                    || strstr(process->imageName, "hdd0/game/"))
-                {
-                    DEBUG_PRINT("SYS_DBG_READ_PROCESS_MEMORY\n");
-
-                    auto pid = syscall->GetArg<lv2::sys_pid_t>(0);
-                    auto destination = syscall->GetArg<void*>(1);
-                    auto source = syscall->GetArg<void*>(2);
-                    auto size = syscall->GetArg<uint64_t>(3);
-
-                    DEBUG_PRINT("pid 0x%llx\n", pid);
-                    DEBUG_PRINT("destination 0x%llx\n", destination);
-                    DEBUG_PRINT("source 0x%llx\n", source);
-                    DEBUG_PRINT("size 0x%llx\n", size);
-
-
-                    // Method #1 use syscall 8
-                    /*auto ps3mapi_get_process_memory = SYSCALL_F(int(*)( int syscall8OpCode, int ps3mapiOpdCode, lv2::sys_pid_t pid, void* destination, void* source, uint64_t size), 8 );
-                    DEBUG_PRINT("ps3mapi_get_process_memory\n");
-                    auto Error = ps3mapi_get_process_memory(0x7777, 0x0031, pid, destination, source, size);
-                    DEBUG_PRINT("Error 0x%X\n", Error);*/
-
-
-                    // Method #2 recreate sys_dbg_write_process_memory
-                    if (process->processID == pid)
-                    {
-                        lv2::process_read_memory(process, destination, source, size);
-                    }
-                }
-            }
-        }
-    }
+        SysDbgReadProcessMemoryHook(syscall);
+#endif
 }
 
 /*
@@ -231,6 +266,8 @@ int PpuLoaderLoadProgramHook(lv2::process* process, int fd, const char* path, in
         }
     }
 }*/
+
+//extern "C" void PpuThreadMsgInterruptExceptionHookPrepare();
 
 /*void PpuThreadMsgInterruptExceptionOriginal(...)
 {
