@@ -52,5 +52,11 @@ typedef struct sys_prx_unload_module_option_t
     uint64_t size;				/* sizeof(this) */
 } sys_prx_unload_module_option_t;
 
+typedef struct sys_prx_load_module_option_t 
+{
+    uint64_t size;				/* sizeof(this) */
+} sys_prx_load_module_option_t;
+
+
 
 }
