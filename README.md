@@ -10,11 +10,11 @@
  
 
 ## Installation
-1. In your PS3 file system go to `/dev_hdd0/plugins/kernel` and transfer file named `ExceptionHandlerPayload.bin` provided in Releases
+1. In your PS3 file system go to `/dev_hdd0/plugins/kernel` and transfer file named `ExceptionHandlerPayload.krnl` provided in Releases
 
 2. Navigate back to /dev_hdd0 and you will find a file named `boot_plugins_kernel.txt` (If file is not found just create one named boot_plugins_kernel.txt)
 
-3. Open boot_plugins_kernel.txt and make a new line and type `/dev_hdd0/plugins/kernel/ExceptionHandlerPayload.bin`
+3. Open boot_plugins_kernel.txt and make a new line and type `/dev_hdd0/plugins/kernel/ExceptionHandlerPayload.krnl`
 
 4. Restart your console
 
