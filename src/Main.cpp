@@ -10,14 +10,6 @@
 #include "LV2/Process.h"
 #include "LV2/Thread.h"
 
-/***
- * TODO
- * hook syscall load module and check path for hdd0/your_game then force load the sprx using this hook method :)
- * hook into syscall 905 on CEX only consoles and use ps3mapi write process to make dex menus work on cex
- * 
- * 
- */ 
-
 extern "C" uint64_t PayloadEntry(uint64_t TOC, uint64_t payloadTOC)
 {	
     const uint64_t error = LibLV2Init(TOC, payloadTOC);
