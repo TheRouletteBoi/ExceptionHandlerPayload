@@ -191,19 +191,13 @@ static void PatchInJump(uint64_t address, uint64_t destination, bool linked)
 {
     uint32_t stubInstructions[7] = { 0 };
 
-    stubInstructions[0] = 0x3D600000 + ((destination >> 48) & 0xFFFF); // Load Destination First 2 Bytes 0x1234
-
-    stubInstructions[1] = 0x616B0000 + ((destination >> 32) & 0xFFFF); // Load Destination Next 2 Bytes 0x5678
-
-    stubInstructions[2] = 0x796B07C6; // Shift That To The Upper Part (IE 0x0000 0000 1234 5678 Becomes 0x1234567800000000)
-
-    stubInstructions[3] = 0x656B0000 + ((destination >> 16) & 0xFFFF); // Load Destination Next 2 Bytes 0x8765
-
-    stubInstructions[4] = 0x616B0000 + (destination & 0xFFFF); // Load Destination Next 2 Bytes 0x4321
-
-    stubInstructions[5] = 0x7D6903A6; // mtctr %r11
-
-    stubInstructions[6] = 0x4E800420;
+    stubInstructions[0] = 0x3D600000 + ((destination >> 48) & 0xFFFF);  // lis r11, 0x1234          | Load Destination First 2 Bytes 0x1234
+    stubInstructions[1] = 0x616B0000 + ((destination >> 32) & 0xFFFF);  // ori r11, r11, 0x5678     | Load Destination Next 2 Bytes 0x5678
+    stubInstructions[2] = 0x796B07C6;                                   // sldi r11, r11, 0x20      | Shift That To The Upper Part (IE 0x0000 0000 1234 5678 Becomes 0x1234567800000000)
+    stubInstructions[3] = 0x656B0000 + ((destination >> 16) & 0xFFFF);  // oris r11, r11, 0x8765    | Load Destination Next 2 Bytes 0x8765
+    stubInstructions[4] = 0x616B0000 + (destination & 0xFFFF);          // ori r11, r11, 0x4321     | Load Destination Next 2 Bytes 0x4321
+    stubInstructions[5] = 0x7D6903A6;                                   // mtctr %r11
+    stubInstructions[6] = 0x4E800420;                                   // bctr
 
     memcpy((void*)address, stubInstructions, sizeof(stubInstructions));
     PPCFlushInstructionCache((void*)address, sizeof(stubInstructions));
@@ -212,26 +206,17 @@ static void PatchInJump(uint64_t address, uint64_t destination, bool linked)
 static void HookFunctionStart(uint64_t address, uint64_t destination, uint64_t stub)
 {
     uint32_t stubInstructions[14] = { 0 };
-    uint64_t branchAddress = (address + (4 * 7)); // Address + 7 Instructions
+    uint64_t branchAddress = (address + (4 * 7));                           // Address + 7 Instructions
+    stubInstructions[0] = 0x3D600000 + ((branchAddress >> 48) & 0xFFFF);    // lis r11, 0x1234          | Load Destination First 2 Bytes 0x1234
+    stubInstructions[1] = 0x616B0000 + ((branchAddress >> 32) & 0xFFFF);    // ori r11, r11, 0x5678     | Load Destination Next 2 Bytes 0x5678
+    stubInstructions[2] = 0x796B07C6;                                       // sldi r11, r11, 0x20      | Shift That To The Upper Part (IE 0x0000 0000 1234 5678 Becomes 0x1234567800000000)
+    stubInstructions[3] = 0x656B0000 + ((branchAddress >> 16) & 0xFFFF);    // oris r11, r11, 0x8765    | Load Destination Next 2 Bytes 0x8765
+    stubInstructions[4] = 0x616B0000 + (branchAddress & 0xFFFF);            // ori r11, r11, 0x4321     | Load Destination Next 2 Bytes 0x4321
+    stubInstructions[5] = 0x7D6903A6;                                       // mtctr %r11
+    for (int i = 0; i < 7; i++)
+        stubInstructions[i + 6] = *(uint32_t*)(address + (4 * i));          // Store Original Instructions
 
-    stubInstructions[0] = 0x3D600000 + ((branchAddress >> 48) & 0xFFFF); // Load Destination First 2 Bytes 0x1234
-
-    stubInstructions[1] = 0x616B0000 + ((branchAddress >> 32) & 0xFFFF); // Load Destination Next 2 Bytes 0x5678
-
-    stubInstructions[2] = 0x796B07C6; // Shift That To The Upper Part (IE 0x0000 0000 1234 5678 Becomes 0x1234567800000000)
-
-    stubInstructions[3] = 0x656B0000 + ((branchAddress >> 16) & 0xFFFF); // Load Destination Next 2 Bytes 0x8765
-
-    stubInstructions[4] = 0x616B0000 + (branchAddress & 0xFFFF); // Load Destination Next 2 Bytes 0x4321
-
-    stubInstructions[5] = 0x7D6903A6; // mtctr %r11
-
-    for (int i = 0; i < 7; ++i)
-    {
-        stubInstructions[i + 6] = *(uint32_t*)(address + (4 * i));  // Store Original Instructions
-    }
-
-    stubInstructions[13] = 0x4E800420;
+    stubInstructions[13] = 0x4E800420;                                      // bctr
 
     memcpy((void*)stub, stubInstructions, sizeof(stubInstructions));
     PPCFlushInstructionCache((void*)stub, sizeof(stubInstructions));
