@@ -11,8 +11,9 @@
 #include "LV2/PRX.h"
 #include "UserMemory.h"
 #include "Hex.h"
+#include "HookOpCode.h"
 
-lv2::sys_prx_id_t sys_prx_load_module(
+lv2::sys_prx_id_t sys_prx_load_module_fn(
     const char* path,
     lv2::sys_prx_flags_t flags, 
     lv2::sys_prx_load_module_option_t* pOpt
@@ -77,13 +78,13 @@ void SysPrxLoadModuleHook(SystemCallContext* syscall)
 
         DEBUG_PRINT("sys_prx_load_module: %x %s\n", error, sprxModuleInfo->name);
 
-        STATIC_FN(&sys_prx_load_module, &syscall->handler)((const char*)syscall->args[0], syscall->args[1], (lv2::sys_prx_load_module_option_t*)syscall->args[2]);
+        STATIC_FN(&sys_prx_load_module_fn, &syscall->handler)((const char*)syscall->args[0], syscall->args[1], (lv2::sys_prx_load_module_option_t*)syscall->args[2]);
         
         
         /*** 
         * every single game uses libsysmodule.sprx so we will use it to inject our sprx into the game without custom EBOOT
-        * this is useful to load an sprx without the need to create a eboot with sprx loader. this is only for sprx's with 
-        * large sprx which will not work when using sys_prx_load_module() when fully in game or while using a sprx tool injector
+        * this is useful to load a sprx without the need to create a eboot with sprx loader built in. This is more viable for sprx's
+        * that exceed memory limits and sprs's that aren't able to load using sys_prx_load_module(). Especially when fully in game or while using a sprx injector
         * NOTE(Roulette): will require a custom syscall??? for us to get new_path from user
         * EG: custom_syscall_mimic_eboot_sprx_loader("/dev_hdd0/tmp/gtas.sprx");
         */
@@ -368,8 +369,27 @@ extern "C" void PpuThreadMsgInterruptExceptionHook(uint64_t thread_obj, uint64_t
     DEBUG_PRINT("thread_obj: 0x%llX\n", thread_obj);
     DEBUG_PRINT("tb_value: 0x%llX\n", tb_value);
 
-    //PpuThreadMsgInterruptExceptionOriginal(thread_obj, tb_value); // HookFunctionStart
-    lv2::ppu_thread_msg_interrupt_exception(thread_obj, tb_value);
+    PpuThreadMsgInterruptExceptionOriginal(thread_obj, tb_value);
+}
+
+void PpuThreadMsgInterruptExceptionHookMid(HookOpCode::HookContext* registers)
+{
+    // Original instruction at 0x800000000026C348 is 'std       r25, 0xB0+var_38(r1)'
+    *(uint64_t*)(uint32_t)(registers->r1 + 0x78) = registers->r25;
+
+    DEBUG_PRINT("PpuThreadMsgInterruptExceptionHookMid\n");
+    DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
+    DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
+}
+
+void PpuThreadMsgInterruptExceptionHookBl(HookOpCode::HookContext* registers)
+{
+    // Original instruction at 0x8000000000296200 is 'bl ppu_thread_msg_interrupt_exception'
+    lv2::ppu_thread_msg_interrupt_exception(registers->r3, registers->r4);
+
+    DEBUG_PRINT("PpuThreadMsgInterruptExceptionHookBl\n");
+    DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
+    DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
 }
 #endif
 
@@ -378,11 +398,9 @@ void InstallHooks()
     SpinLockInit(&SystemCallLock);
     PPCWriteBranchRelative(g_LibLV2.systemCallDispatchBranch, ((OPD_t*)SystemCallHookPrepareDispatch)->Function, true);
 
-
-
-    //PPCWriteBranchRelative((uint32_t*)g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, false);
     //HookFunctionStart(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionOriginal)->Function);
-    //PPCWriteBranchRelative((uint32_t*)g_LibLV2.ppuThreadMsgInterruptExceptionBranch, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, true);
-    //hook_function_with_postcall(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHook, 2);
-    //hook_function_on_precall_success(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, (void*)((OPD_t*)PpuThreadMsgInterruptExceptionHook)->Function, 2);
+
+    //HookOpCode::Initialize(0x8000000000111100); // FIXME(Roulette): update to a real unused kernel executable memory
+    //HookOpCode::Add(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHookMid);
+    //HookOpCode::Add(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHookBl);
 }
