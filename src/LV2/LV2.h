@@ -51,6 +51,7 @@ struct LibLV2Context
 
     uint32_t* systemCallDispatchBranch;
     uint32_t* ppuThreadMsgInterruptExceptionBranch;
+    uint64_t ppuThreadMsgInterruptException3rdInstructionAddress;
 
     int(*lv2_kern_tty_write)(const char* text, size_t length);
     void(*printf)(const char* fmt, ... );

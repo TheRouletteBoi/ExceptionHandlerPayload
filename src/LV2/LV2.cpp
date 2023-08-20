@@ -226,6 +226,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("7C 7C 1B 78 7C 9D 23 78 7F F2 02 A6 7F D3 02 A6 91 81 ?? ?? 7C 08 02 A6").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
+            cxt.ppuThreadMsgInterruptException3rdInstructionAddress = (result - 0x20);
             cxt.ppu_thread_msg_interrupt_exception_opd = Signature::FindProcedureDescriptor(result - 0x28, cxt.kernelLastOPDEntry);   
             return Signature::CallbackStatus::SCANNER_STOP;
         }
