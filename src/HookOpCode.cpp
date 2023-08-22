@@ -215,8 +215,8 @@ namespace HookOpCode
         mainHookLocation = location;
 
         // Copy BranchToHandler to mainHookAddress because we can't branch to it directly.
-        memcpy((void*)mainHookLocation, (const void *)((OPD_t*)BranchToHandler)->Function, 12 * 4);
-        PPCFlushInstructionCache((void*)mainHookLocation, 12 * 4);
+        memcpy((void*)mainHookLocation, (const void *)((OPD_t*)BranchToHandler)->Function, 15 * 4);
+        PPCFlushInstructionCache((void*)mainHookLocation, 15 * 4);
     }
 
     void Handler(HookContext* ctx)
