@@ -13,6 +13,11 @@
 #include "Hex.h"
 #include "HookOpCode.h"
 
+/*
+* NOTE
+* if you see any hardcoded memory addresses they are for kernel/LV2 4.84 DEX
+*/
+
 lv2::sys_prx_id_t sys_prx_load_module_fn(
     const char* path,
     lv2::sys_prx_flags_t flags, 
@@ -400,7 +405,8 @@ void InstallHooks()
 
     //HookFunctionStart(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionOriginal)->Function);
 
-    //HookOpCode::Initialize(0x8000000000111100); // FIXME(Roulette): update to a real unused kernel executable memory
+    // install hook at syscall_870_sys_ss_get_console_id
+    //HookOpCode::Initialize(0x8000000000231B9C); // TODO(Roulette): use a better function to install our hook
     //HookOpCode::Add(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHookMid);
     //HookOpCode::Add(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHookBl);
 }
