@@ -20,11 +20,28 @@ __attribute__((naked, noinline)) void BranchToHandler()
         "oris      %r2, %r2, __toc@h;"
         "ori       %r2, %r2, __toc@l;"
 
+
+        /*  example from lv2
+        "ld        r13, 0(r14);"
+        "li        r11, 0;"
+        "sldi      r11, r11, 3;"
+        "add       r13, r11, r13;"
+
+        "ld        r13, 0(r13);"
+        "ld        r13, 0(r13);"
+        "stdu      r1, back_chain(r1);"
+        "mtlr      r13;"
+        "blrl;"
+        */
+
         // Get the opd pointer from HandleRegisters() and call it
         // TODO(Roulette): fix opd pointer for uint64
         "addis     %r3, %r4, _Z15HandleRegistersv@h;"
         "addi      %r3, %r3, _Z15HandleRegistersv@l;"
-        "ld        %r2, 4(%r3);"
+
+
+        // good
+        "ld        %r2, 8(%r3);"
         "ld        %r3, 0(%r3);"
         "mtlr      %r3;"
         "blr;"
