@@ -9,10 +9,17 @@ struct SystemCallContext
 
 
     template <typename T>
-    T GetArg(size_t index)
+    T GetArg(uint8_t parameterIndex)
     {
-        return (T)args[index];
+        return (T)args[parameterIndex];
     }
+
+    template <typename T>
+    void SetArg(uint8_t parameterIndex, T value)
+    {
+        *reinterpret_cast<T*>(&args[parameterIndex]) = value;
+    }
+
 };
 
 void InstallHooks();
