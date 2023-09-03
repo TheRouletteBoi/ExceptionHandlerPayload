@@ -14,6 +14,9 @@ __attribute__((naked, noinline)) void BranchToHandler()
         "mflr      %r2;"
         "std       %r2, 0x170(%r1);"
 
+        // Kernel TOC in r5
+        //"mr         %r5, %r2;"
+
         // Load the TOC of our payload
         "lis       %r2, __toc@highest;"
         "sldi      %r2, %r2, 32;"
@@ -32,11 +35,26 @@ __attribute__((naked, noinline)) void BranchToHandler()
         "stdu      r1, back_chain(r1);"
         "mtlr      r13;"
         "blrl;"
+
+
+        // exapmle in our payload
+        mulli     r5, r6, 0x18
+        std       r2, 0x70+saved_toc(r1)
+        add       r4, r4, r5
+        ld        r4, 0x10(r4)
+        ld        r5, 0(r4)
+        ld        r11, 0x10(r4)
+        mtctr     r5
+        ld        r2, 8(r4)
+        bctrl
         */
 
         // Get the opd pointer from HandleRegisters() and call it
         // TODO(Roulette): fix opd pointer for uint64
-        "addis     %r3, %r4, _Z15HandleRegistersv@h;"
+        // Upate 8/3/2023: fixed maybe according to IDA?
+        "lis       %r3, _Z15HandleRegistersv@highest;"
+        "sldi      %r3, %r3, 32;"
+        "addis     %r3, %r3, _Z15HandleRegistersv@h;"
         "addi      %r3, %r3, _Z15HandleRegistersv@l;"
 
 
@@ -238,6 +256,9 @@ namespace HookOpCode
 
     void Handler(HookContext* ctx)
     {
+        if (ctx == nullptr)
+            return;
+
         uintptr_t calledFrom = ctx->lr - 4;
 
         // Look through all our hooks to find the corresponding callback
@@ -257,11 +278,17 @@ namespace HookOpCode
     {
         // If the address isn't valid don't go further
         if (address < 0x8000000000000000)
+        {
+            DEBUG_PRINT("ERROR: your hook address is not valid\n");
             return;
+        }
 
         // Stop proceeding if we have reached our maximum amount of hooks
         if (hookStackCounter > MAX_HOOKS)
+        {
+            DEBUG_PRINT("ERROR: you have reached maximum amount of hooks. Change MAX_HOOKS limit\n");
             return;
+        }
 
         // Setup the hook
         hookStack[hookStackCounter].address = address;
