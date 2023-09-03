@@ -9,8 +9,7 @@ message(STATUS "The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
 add_link_options(
     -T${CMAKE_SOURCE_DIR}/src/Linker.x
-    # -nostartfiles -nostdlib -nodefaultlibs -Wl,--gc-sections,-static,--undefined=PayloadEntry
-    -nostartfiles -nostdlib -nodefaultlibs -Wl,-static,--undefined=PayloadEntry
+    -nostartfiles -nostdlib -nodefaultlibs -Wl,--gc-sections,-static,--undefined=PayloadEntry
 )
 
 add_compile_options(
