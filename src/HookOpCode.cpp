@@ -13,6 +13,7 @@ __attribute__((naked, noinline)) void BranchToHandler()
         "std       %r3, 0x88(%r1);"
         "mflr      %r2;"
         "std       %r2, 0x170(%r1);"
+        "std       %r11, 0xC8(%r1);"
 
         // Kernel TOC in r5
         //"mr         %r5, %r2;"
@@ -53,9 +54,9 @@ __attribute__((naked, noinline)) void BranchToHandler()
         "sldi      %r3, %r3, 32;"
         "addis     %r3, %r3, _Z15HandleRegistersv@h;"
         "addi      %r3, %r3, _Z15HandleRegistersv@l;"
-        "ld        %r3, 0(%r3);"        // Function
         "ld        %r11, 0x10(%r3);"    // Enviroment
         "ld        %r2, 8(%r3);"        // TOC
+        "ld        %r3, 0(%r3);"        // Function
         "mtlr      %r3;"
         "blr;"
     );
@@ -79,7 +80,7 @@ __attribute__((naked, noinline)) void HandleRegisters()
         "std       %r8, 0xB0(%r1);"
         "std       %r9, 0xB8(%r1);"
         "std       %r10, 0xC0(%r1);"
-        "std       %r11, 0xC8(%r1);"
+        //"std       %r11, 0xC8(%r1);"
         "std       %r12, 0xD0(%r1);"
         "std       %r13, 0xD8(%r1);"
         "std       %r14, 0xE0(%r1);"

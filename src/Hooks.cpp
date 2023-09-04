@@ -151,7 +151,7 @@ void SysDbgWriteProcessMemoryHook(SystemCallContext* syscall)
 
     if (IsGameProcess(process))
     {
-        lv2::extend_kstack(0);
+        //lv2::extend_kstack(0);
 
         DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
 
@@ -433,6 +433,7 @@ void PpuThreadMsgInterruptExceptionHookBl(HookOpCode::HookContext* registers)
     DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
     DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
 }
+#endif
 
 void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
 {
@@ -445,18 +446,16 @@ void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
     DEBUG_PRINT("r5: 0x%016llx\n", registers->r5);
     DEBUG_PRINT("r6: 0x%016llx\n", registers->r6);
 }
-#endif
-
-#include "LV2/Console.h"
+//#endif
 
 void InstallHooks()
 {
-#if 1
+#if 0
     SpinLockInit(&SystemCallLock);
     PPCWriteBranchRelative(g_LibLV2.systemCallDispatchBranch, ((OPD_t*)SystemCallHookPrepareDispatch)->Function, true);
 #endif
 
-#if 0
+#if 1
     // TODO(Roulette): use a better function to install 
     // our hook. Initiation of hook is installed at syscall_870_sys_ss_get_console_id = 0x8000000000231B9C
     DEBUG_PRINT("HookOpCode::Initialize\n");
