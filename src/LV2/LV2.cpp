@@ -33,6 +33,11 @@ OPD_t* FindLastOPDEntry(uint64_t TOC)
 #ifdef HAS_DEBUG_PRINTS
 void LibLV2DebugPrint(const char* format, ...)
 {
+#ifdef HAS_DEBUG_PRINTS_WITH_DEBUG_COBRA
+    g_LibLV2.lv2_kern_tty_write = (decltype(g_LibLV2.lv2_kern_tty_write))0x8000000000362288;
+    g_LibLV2.lv2_clprintf_opd = (OPD_t*)0x800000000032e268;
+#endif
+
     if (g_LibLV2.lv2_kern_tty_write && g_LibLV2.lv2_clprintf_opd)
     {
         va_list argList;
@@ -283,7 +288,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
 
     
         
-
+#ifndef HAS_DEBUG_PRINTS_WITH_DEBUG_COBRA
     if (g_LibLV2.lv2_console_get_instance_opd           == 0 ||
         g_LibLV2.lv2_console_write_opd                  == 0 || 
         g_LibLV2.lv2_console_write_async_opd            == 0 || 
@@ -292,6 +297,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     {
         return LIB_LV2_ADDRESS_NOT_FOUND;
     }
+#endif
 
     DEBUG_PRINT("lv2_console_get_instance_opd 0x%llx\n",                g_LibLV2.lv2_console_get_instance_opd);
     DEBUG_PRINT("lv2_console_write_opd 0x%llx\n",                       g_LibLV2.lv2_console_write_opd);
