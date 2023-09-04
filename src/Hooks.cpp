@@ -24,6 +24,18 @@ lv2::sys_prx_id_t sys_prx_load_module_fn(
     lv2::sys_prx_load_module_option_t* pOpt
 );
 
+int sys_dbg_write_process_memory_fn(
+    lv2::sys_pid_t pid,
+    void* destination, 
+    uint64_t size,
+    void* source
+);
+
+void NopFn()
+{
+
+}
+
 bool IsGameProcess(lv2::process* process)
 {
     if (NonCryptoHashFNV1A64(process->imageName) == NonCryptoHashFNV1A64("/app_home/EBOOT.BIN")
@@ -57,8 +69,8 @@ void SysPrxLoadModuleHook(SystemCallContext* syscall)
         DEBUG_PRINT("flags 0x%llx\n", flags);
         DEBUG_PRINT("pOpt 0x%llx\n", pOpt);
 
-
-
+        auto moduleId = STATIC_FN(&sys_prx_load_module_fn, &syscall->handler)(syscall->GetArg<const char*>(0), syscall->GetArg<lv2::sys_prx_flags_t>(1), syscall->GetArg<lv2::sys_prx_load_module_option_t*>(2));
+        DEBUG_PRINT("moduleId: %x\n", moduleId);
 
         auto memoryManager = AllocateUserPage(process, 0x2000);
 
@@ -78,22 +90,18 @@ void SysPrxLoadModuleHook(SystemCallContext* syscall)
 
         auto sys_prx_get_module_info = SYSCALL_F(int(*)(lv2::sys_prx_id_t id, lv2::sys_prx_flags_t flags, lv2::sys_prx_module_info_option_t *pInfo), _SYS_PRX_GET_MODULE_INFO);
 
-        // TODO(Roulette): replace syscall->args[ xx ] with syscall->GetArg<type>(xx);
-        auto error = sys_prx_get_module_info(syscall->args[0], 0, sprxModuleInfoOpt.User());
+        auto error = sys_prx_get_module_info(moduleId, 0, sprxModuleInfoOpt.User());
 
-        DEBUG_PRINT("sys_prx_load_module: %x %s\n", error, sprxModuleInfo->name);
+        DEBUG_PRINT("sys_prx_get_module_info: %x %s\n", error, sprxModuleInfo->name);
 
-        STATIC_FN(&sys_prx_load_module_fn, &syscall->handler)((const char*)syscall->args[0], syscall->args[1], (lv2::sys_prx_load_module_option_t*)syscall->args[2]);
-        
-        
         /*** 
-        * every single game uses libsysmodule.sprx so we will use it to inject our sprx into the game without custom EBOOT
+        * every single game uses libsysmodule.sprx alias cellSysmodule_Library so we will use it to inject our sprx into the game without custom EBOOT
         * this is useful to load a sprx without the need to create a eboot with sprx loader built in. This is more viable for sprx's
         * that exceed memory limits and sprs's that aren't able to load using sys_prx_load_module(). Especially when fully in game or while using a sprx injector
         * NOTE(Roulette): will require a custom syscall??? for us to get new_path from user
         * EG: custom_syscall_mimic_eboot_sprx_loader("/dev_hdd0/tmp/gtas.sprx");
         */
-        if (NonCryptoHashFNV1A64(sprxModuleInfo->name) == NonCryptoHashFNV1A64("libsysmodule.sprx"))
+        if (NonCryptoHashFNV1A64(sprxModuleInfo->name) == NonCryptoHashFNV1A64("cellSysmodule_Library"))
         {
 #if 0
             // TODO(Roulette): should I replace the string or the pointer to the string??
@@ -143,7 +151,10 @@ void SysDbgWriteProcessMemoryHook(SystemCallContext* syscall)
 
     if (IsGameProcess(process))
     {
+        lv2::extend_kstack(0);
+
         DEBUG_PRINT("SYS_DBG_WRITE_PROCESS_MEMORY\n");
+
 
         const auto pid          = syscall->GetArg<lv2::sys_pid_t>(0);
         const auto destination  = syscall->GetArg<void*>(1);
@@ -155,14 +166,22 @@ void SysDbgWriteProcessMemoryHook(SystemCallContext* syscall)
         DEBUG_PRINT("size 0x%llx\n", size);
         DEBUG_PRINT("source 0x%llx\n", source);
 
-
 #if 1
+        // delete redirect original function to our NopFn function which does nothing
+        auto error = STATIC_FN(&sys_dbg_write_process_memory_fn, &syscall->handler)(pid, destination, size, source);
+        DEBUG_PRINT("sys_dbg_write_process_memory_fn returned = 0x%llX\n", error);
+        syscall->handler.Function = ((OPD_t*)NopFn)->Function;
+
         // method #1 redirect to syscall 8
         auto syscall8 = SYSCALL_F(int(*)(uint64_t function, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7), 8);
-        DEBUG_PRINT("ps3mapi_set_process_memory\n");
-        auto error = syscall8(0x7777, 0x0032, syscall->args[0], syscall->args[1], syscall->args[3], syscall->args[2], 0, 0);
-        DEBUG_PRINT("Error 0x%X\n", error);
-#else
+        DEBUG_PRINT("calling syscall8 with parameters [arg1] = 0x%llX [arg2] = 0x%llX [arg3] = 0x%llX [arg4] = 0x%llX [arg5] = 0x%llX [arg6] = 0x%llX [arg7] = 0x%llX [arg8] = 0x%llX\n", 0x7777, 0x0032, pid, destination, source, size, 0, 0);
+        
+        // BUG(roulette): crashes when calling syscall8
+        error = syscall8((uint64_t)0x7777, (uint64_t)0x0032, (uint64_t)pid, (uint64_t)destination, (uint64_t)source, (uint64_t)size, (uint64_t)0, (uint64_t)0);
+        DEBUG_PRINT("syscall8 returned = 0x%llX\n", error);
+#endif
+
+#if 0
         // method #2 recreate sys_dbg_write_process_memory
         if (process->processID != pid)
             return;
@@ -197,6 +216,19 @@ void SysDbgWriteProcessMemoryHook(SystemCallContext* syscall)
         }
         return error;
 #endif
+
+#if 0
+        // method #3 redirect parameters | Update: doesn't work because we write back to SystemCallContext* which not the actual parameters/registers
+        syscall->index = 8;
+        syscall->SetArg(0, 0x7777);
+        syscall->SetArg(1, 0x0032);
+        syscall->SetArg(2, syscall->GetArg<lv2::sys_pid_t>(0));
+        syscall->SetArg(3, syscall->GetArg<void*>(1));
+        syscall->SetArg(4, syscall->GetArg<void*>(3));
+        syscall->SetArg(5, syscall->GetArg<uint64_t>(2));
+        syscall->SetArg(6, 0);
+        syscall->SetArg(7, 0);
+#endif 
     }
 }
 
@@ -228,8 +260,9 @@ void SysDbgReadProcessMemoryHook(SystemCallContext* syscall)
 #if 1
         // method #1 redirect to syscall 8
         auto syscall8 = SYSCALL_F(int(*)(uint64_t function, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7), 8);
-        DEBUG_PRINT("ps3mapi_get_process_memory\n");
+        DEBUG_PRINT("calling ps3mapi_get_process_memory with parmeters [arg1] = 0x%016llX [arg2] = 0x%016llX [arg3] = 0x%016llX [arg4] = 0x%016llX [arg5] = 0x%016llX [arg6] = 0x%016llX\n", syscall->args[0], syscall->args[1], syscall->args[2], syscall->args[3], 0, 0);
         auto error = syscall8(0x7777, 0x0031, syscall->args[0], syscall->args[1], syscall->args[2], syscall->args[3], 0, 0);
+        DEBUG_PRINT("ps3mapi_get_process_memory returned = 0x%016llX\n", error);
 
         // TODO(roulette): need to return error
 #else
@@ -276,11 +309,15 @@ volatile int SystemCallLock;
 extern "C" void SystemCallHookPrepareDispatch();
 extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 {
+#if 0
     if (syscall->index == _SYS_PRX_LOAD_MODULE)
         SysPrxLoadModuleHook(syscall);
+#endif
 
+#if 1
     if (syscall->index == SYS_DBG_WRITE_PROCESS_MEMORY)
         SysDbgWriteProcessMemoryHook(syscall);
+#endif
 
 #if 0
     if (syscall->index == SYS_DBG_READ_PROCESS_MEMORY)
@@ -380,7 +417,7 @@ extern "C" void PpuThreadMsgInterruptExceptionHook(uint64_t thread_obj, uint64_t
 void PpuThreadMsgInterruptExceptionHookMid(HookOpCode::HookContext* registers)
 {
     // Original instruction at 0x800000000026C348 is 'std       r25, 0xB0+var_38(r1)'
-    *(uint64_t*)(uint32_t)(registers->r1 + 0x78) = registers->r25;
+    *(uint64_t*)(registers->r1 + 0x78) = registers->r25;
 
     DEBUG_PRINT("PpuThreadMsgInterruptExceptionHookMid\n");
     DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
@@ -396,17 +433,47 @@ void PpuThreadMsgInterruptExceptionHookBl(HookOpCode::HookContext* registers)
     DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
     DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
 }
+
+void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
+{
+    // Original instruction at 0x8000000000280804 is 'std r30, 0xB0+var_10(r1)'
+    *(uint64_t*)(registers->r1 + 0xA0) = registers->r30;
+
+    DEBUG_PRINT("sysDbgWriteProcessMemoryMid\n");
+    DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
+    DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
+    DEBUG_PRINT("r5: 0x%016llx\n", registers->r5);
+    DEBUG_PRINT("r6: 0x%016llx\n", registers->r6);
+}
 #endif
+
+#include "LV2/Console.h"
 
 void InstallHooks()
 {
+#if 1
     SpinLockInit(&SystemCallLock);
     PPCWriteBranchRelative(g_LibLV2.systemCallDispatchBranch, ((OPD_t*)SystemCallHookPrepareDispatch)->Function, true);
+#endif
 
-    //HookFunctionStart(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionOriginal)->Function);
+#if 0
+    // TODO(Roulette): use a better function to install 
+    // our hook. Initiation of hook is installed at syscall_870_sys_ss_get_console_id = 0x8000000000231B9C
+    DEBUG_PRINT("HookOpCode::Initialize\n");
+    HookOpCode::Initialize(0x8000000000231B9C);
 
-    // install hook at syscall_870_sys_ss_get_console_id
-    //HookOpCode::Initialize(0x8000000000231B9C); // TODO(Roulette): use a better function to install our hook
+    // We need to define this function here otherwise it 
+    // get's stripped by linker for not having any references.
+    // Reason: BranchToHandler() doesn't get called by symbol in IDA.
+    DEBUG_PRINT("HookOpCode::Handler\n");
+    HookOpCode::Handler(nullptr);
+
     //HookOpCode::Add(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHookMid);
     //HookOpCode::Add(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHookBl);
+    DEBUG_PRINT("HookOpCode::Add\n");
+    HookOpCode::Add(0x8000000000280804, sysDbgWriteProcessMemoryMid);
+#endif
+
+
+    //HookFunctionStart(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionOriginal)->Function);
 }
