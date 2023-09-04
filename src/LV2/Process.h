@@ -66,6 +66,11 @@ static inline uint32_t process_read_memory(lv2::process* process, void* destinat
     return STATIC_FN(&process_read_memory, g_LibLV2.process_read_memory_opd)(process, destination, source, size);
 }
 
+static inline void extend_kstack(uint64_t a1)
+{
+    return STATIC_FN(&extend_kstack, g_LibLV2.extend_kstack_opd)(a1);
+}
+
 }
 
 #endif // !LV2_PROCESS_H
