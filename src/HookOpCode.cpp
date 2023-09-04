@@ -59,9 +59,9 @@ __attribute__((naked, noinline)) void BranchToHandler()
 
 
         // good
-        "ld        %r3, 0(%r3);"    // Function
-        "ld        %r11, 0x10(%r4);" // Enviroment
-        "ld        %r2, 8(%r3);"    // TOC
+        "ld        %r3, 0(%r3);"        // Function
+        "ld        %r11, 0x10(%r4);"    // Enviroment
+        "ld        %r2, 8(%r3);"        // TOC
         "mtlr      %r3;"
         "blr;"
     );
