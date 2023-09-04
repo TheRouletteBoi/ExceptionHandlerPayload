@@ -49,18 +49,12 @@ __attribute__((naked, noinline)) void BranchToHandler()
         bctrl
         */
 
-        // Get the opd pointer from HandleRegisters() and call it
-        // TODO(Roulette): fix opd pointer for uint64
-        // Upate 8/3/2023: fixed maybe according to IDA?
         "lis       %r3, _Z15HandleRegistersv@highest;"
         "sldi      %r3, %r3, 32;"
         "addis     %r3, %r3, _Z15HandleRegistersv@h;"
         "addi      %r3, %r3, _Z15HandleRegistersv@l;"
-
-
-        // good
         "ld        %r3, 0(%r3);"        // Function
-        "ld        %r11, 0x10(%r4);"    // Enviroment
+        "ld        %r11, 0x10(%r3);"    // Enviroment
         "ld        %r2, 8(%r3);"        // TOC
         "mtlr      %r3;"
         "blr;"
