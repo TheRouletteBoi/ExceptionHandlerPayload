@@ -456,21 +456,10 @@ void InstallHooks()
 #endif
 
 #if 1
-    // TODO(Roulette): use a better function to install 
-    // our hook. Initiation of hook is installed at syscall_870_sys_ss_get_console_id = 0x8000000000231B9C
-    DEBUG_PRINT("HookOpCode::Initialize\n");
-    HookOpCode::Initialize(0x8000000000231B9C);
-
-    // We need to define this function here otherwise it 
-    // get's stripped by linker for not having any references.
-    // Reason: BranchToHandler() doesn't get called by symbol in IDA.
-    DEBUG_PRINT("HookOpCode::Handler\n");
-    HookOpCode::Handler(nullptr);
-
-    //HookOpCode::Add(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHookMid);
-    //HookOpCode::Add(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHookBl);
-    DEBUG_PRINT("HookOpCode::Add\n");
-    HookOpCode::Add(0x8000000000280804, sysDbgWriteProcessMemoryMid);
+    //HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHookMid);
+    //HookOpCode::AttachDetour(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHookBl);
+    DEBUG_PRINT("HookOpCode::AttachDetour\n");
+    HookOpCode::AttachDetour(0x8000000000280804, sysDbgWriteProcessMemoryMid);
 #endif
 
 

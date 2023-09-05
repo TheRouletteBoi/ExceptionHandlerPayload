@@ -52,9 +52,8 @@ namespace HookOpCode
         HookCallback callback;
     };
 
-    void Initialize(uintptr_t location);
-    void Handler(HookContext* ctx);
-    void Add(uintptr_t address, HookCallback callback);
+    extern "C" void Handler(HookContext* ctx);
+    void AttachDetour(uintptr_t address, HookCallback callback);
 }
 
 #endif // !HOOKOPCODE_H
