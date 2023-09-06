@@ -373,80 +373,76 @@ int PpuLoaderLoadProgramHook(lv2::process* process, int fd, const char* path, in
         }
     }
 }
-
 #endif
 
-#if 0
-extern "C" void PpuThreadMsgInterruptExceptionHookPrepare();
-void PpuThreadMsgInterruptExceptionOriginal(...)
-{
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-    __asm("nop");
-}
-
-extern "C" void PpuThreadMsgInterruptExceptionHook(uint64_t thread_obj, uint64_t tb_value)
-{
-    DEBUG_PRINT("PpuThreadMsgInterruptExceptionHook\n");
-    DEBUG_PRINT("thread_obj: 0x%llX\n", thread_obj);
-    DEBUG_PRINT("tb_value: 0x%llX\n", tb_value);
-
-    PpuThreadMsgInterruptExceptionOriginal(thread_obj, tb_value);
-}
-
-void PpuThreadMsgInterruptExceptionHookMid(HookOpCode::HookContext* registers)
+#if 1
+void PpuThreadMsgInterruptExceptionHook(HookOpCode::HookContext* registers)
 {
     // Original instruction at 0x800000000026C348 is 'std       r25, 0xB0+var_38(r1)'
     *(uint64_t*)(registers->r1 + 0x78) = registers->r25;
 
-    DEBUG_PRINT("PpuThreadMsgInterruptExceptionHookMid\n");
+    DEBUG_PRINT("PpuThreadMsgInterruptExceptionHook\n");
+
+    const auto thread_obj   = registers->GetGpr<uint64_t>(3);
+    const auto tb_value     = registers->GetGpr<uint64_t>(4);
+
+    DEBUG_PRINT("thread_obj: 0x%016llX\n", thread_obj);
+    DEBUG_PRINT("tb_value: 0x%016llx\n", tb_value);
+
     DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
     DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
 }
+#endif 
 
-void PpuThreadMsgInterruptExceptionHookBl(HookOpCode::HookContext* registers)
-{
-    // Original instruction at 0x8000000000296200 is 'bl ppu_thread_msg_interrupt_exception'
-    lv2::ppu_thread_msg_interrupt_exception(registers->r3, registers->r4);
-
-    DEBUG_PRINT("PpuThreadMsgInterruptExceptionHookBl\n");
-    DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
-    DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
-}
-#endif
-
+#if 0
 void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
 {
     // Original instruction at 0x8000000000280804 is 'std r30, 0xB0+var_10(r1)'
     *(uint64_t*)(registers->r1 + 0xA0) = registers->r30;
 
-    DEBUG_PRINT("sysDbgWriteProcessMemoryMid\n");
-    DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
-    DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
-    DEBUG_PRINT("r5: 0x%016llx\n", registers->r5);
-    DEBUG_PRINT("r6: 0x%016llx\n", registers->r6);
+
+    lv2::process* process = lv2::get_current_process();
+    
+    if (process == nullptr)
+        return;
+        
+    if (process->imageName == nullptr)
+        return;
+
+    if (IsGameProcess(process))
+    {
+        //lv2::extend_kstack(0);
+
+        DEBUG_PRINT("sysDbgWriteProcessMemoryMid\n");
+
+        const auto pid          = registers->GetGpr<lv2::sys_pid_t>(3);
+        const auto destination  = registers->GetGpr<void*>(4);
+        const auto size         = registers->GetGpr<uint64_t>(5);
+        const auto source       = registers->GetGpr<void*>(6);
+
+        DEBUG_PRINT("pid 0x%llx\n", pid);
+        DEBUG_PRINT("destination 0x%llx\n", destination);
+        DEBUG_PRINT("size 0x%llx\n", size);
+        DEBUG_PRINT("source 0x%llx\n", source);
+
+        DEBUG_PRINT("registers\n");
+        DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
+        DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
+        DEBUG_PRINT("r5: 0x%016llx\n", registers->r5);
+        DEBUG_PRINT("r6: 0x%016llx\n", registers->r6);
+
+
+
+        auto syscall8 = SYSCALL_F(int(*)(uint64_t function, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7), 8);
+        DEBUG_PRINT("calling syscall8 with parameters [arg1] = 0x%llX [arg2] = 0x%llX [arg3] = 0x%llX [arg4] = 0x%llX [arg5] = 0x%llX [arg6] = 0x%llX [arg7] = 0x%llX [arg8] = 0x%llX\n", 0x7777, 0x0032, pid, destination, source, size, 0, 0);
+        
+        // BUG(roulette): crashes when calling syscall8
+        auto error = syscall8((uint64_t)0x7777, (uint64_t)0x0032, (uint64_t)pid, (uint64_t)destination, (uint64_t)source, (uint64_t)size, (uint64_t)0, (uint64_t)0);
+        DEBUG_PRINT("syscall8 returned = 0x%llX\n", error);
+
+    }
 }
-//#endif
+#endif
 
 void InstallHooks()
 {
@@ -456,12 +452,9 @@ void InstallHooks()
 #endif
 
 #if 1
-    //HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHookMid);
-    //HookOpCode::AttachDetour(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, PpuThreadMsgInterruptExceptionHookBl);
     DEBUG_PRINT("HookOpCode::AttachDetour\n");
-    HookOpCode::AttachDetour(0x8000000000280804, sysDbgWriteProcessMemoryMid);
+    //HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
+    //HookOpCode::AttachDetour(g_LibLV2.ppu_loader_load_program_bl_address, PpuLoaderLoadProgramHook);
+    //HookOpCode::AttachDetour(0x8000000000280804, sysDbgWriteProcessMemoryMid);
 #endif
-
-
-    //HookFunctionStart(g_LibLV2.ppu_thread_msg_interrupt_exception_opd->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionHookPrepare)->Function, ((OPD_t*)PpuThreadMsgInterruptExceptionOriginal)->Function);
 }

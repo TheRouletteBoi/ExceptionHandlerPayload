@@ -205,12 +205,12 @@ HookOpCodePrepareDispatch:
 	stfd      %f31, CALL_CONTEXT+0x218(%r1)
 	
 	//
-    // Load the TOC of our payload.
-    //
-    lis       %r2, __toc@highest
-    sldi      %r2, %r2, 32
-    oris      %r2, %r2, __toc@h
-    ori       %r2, %r2, __toc@l
+	// Load the TOC of our payload.
+	//
+	lis       %r2, __toc@highest
+	sldi      %r2, %r2, 32
+	oris      %r2, %r2, __toc@h
+	ori       %r2, %r2, __toc@l
 	
 	//
 	// HookOpCode::Handler( CallContext )
@@ -306,50 +306,4 @@ HookOpCodePrepareDispatch:
 	//
 	ld        %r1, CALL_CONTEXT+8(%r1)
 	blr
-
-
-
-/* 
-.text
-.p2align 2
-.globl  PpuThreadMsgInterruptExceptionHookPrepare
-.type   PpuThreadMsgInterruptExceptionHookPrepare,@function
-.section .opd,"aw",@progbits
-PpuThreadMsgInterruptExceptionHookPrepare: 
-.p2align 3
-.quad  .PpuThreadMsgInterruptExceptionHookPrepare
-.quad  .TOC.@tocbase
-.quad  0
-.section .text,"ax",@progbits
-
-
-.PpuThreadMsgInterruptExceptionHookPrepare:
-    .set STACK_SIZE,   0x200
-    .set CALL_CONTEXT, 0x40
-    //
-    // Save our return address (the system call dispatcher)
-    //
-    mflr    %r0
-    std     %r0, 0x10(%r1)
-    stdu    %r1, -STACK_SIZE(%r1)
-    std     %r2, CALL_CONTEXT+0x50(%r1)
-
-    //
-    // Load the TOC of our payload.
-    //
-    lis   %r2, __toc@highest
-    sldi  %r2, %r2, 32
-    oris  %r2, %r2, __toc@h
-    ori   %r2, %r2, __toc@l
-
-    bl    PpuThreadMsgInterruptExceptionHook
-
-
-    // Restore TOC
-    ld    %r2, CALL_CONTEXT+0x50(%r1)
-    addi  %r1, %r1, STACK_SIZE
-
-
-    ld    %r0, 0x10(%r1)
-    mtlr  %r0
-    bctr    */
+	
