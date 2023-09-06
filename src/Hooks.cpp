@@ -367,7 +367,7 @@ static inline uint32_t PpuLoaderLoadProgram(uint64_t process, uint64_t fd, uint6
 void PpuLoaderLoadProgramHook(HookOpCode::HookContext* registers)
 {
     // Original instruction at 0x80000000002725B0 is 'bl ppu_loader_load_program'
-    // BUG(Roulette): last register may be wrong
+    // BUG(Roulette): crashes 'stack overflow' last parameter may be wrong
     uint32_t error = PpuLoaderLoadProgram(registers->r3, registers->r4, registers->r5, registers->r6, registers->r7, registers->r8, registers->r9, registers->r10, registers->r29);
 
     DEBUG_PRINT("PpuLoaderLoadProgramHook\n");
@@ -429,44 +429,43 @@ void PpuThreadMsgInterruptExceptionHook(HookOpCode::HookContext* registers)
     DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
 }
 
-#if 0
-void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
+
+#if 1
+OPD_t* sysDbgWriteProcessMemoryOriginal = nullptr;
+void DetourSyscall(uint32_t syscallIndex, OPD_t* fn, OPD_t** original)
 {
-    // Original instruction at 0x8000000000280804 is 'std r30, 0xB0+var_10(r1)'
-    *(uint64_t*)(registers->r1 + 0xA0) = registers->r30;
+    // switch fumction payload TOC with kernel TOC
+    fn->TOC = g_LibLV2.kernelTOC;
 
+    // get the original unmodified values
+    *original = g_LibLV2.systemCallTable[syscallIndex];
 
+    // overwrite syscall OPD_t
+    g_LibLV2.systemCallTable[syscallIndex] = fn;
+}
+
+extern "C" void HookSyscallPrepareDispatch();
+extern "C" int sysDbgWriteProcessMemoryHook2(lv2::sys_pid_t pid, void* destination, uint64_t size, void* source)
+{
+#if 0
     lv2::process* process = lv2::get_current_process();
     
     if (process == nullptr)
-        return;
+        return callOriginal;
         
     if (process->imageName == nullptr)
-        return;
+        return callOriginal;
 
     if (IsGameProcess(process))
     {
         //lv2::extend_kstack(0);
 
-        DEBUG_PRINT("sysDbgWriteProcessMemoryMid\n");
-
-        const auto pid          = registers->GetGpr<lv2::sys_pid_t>(3);
-        const auto destination  = registers->GetGpr<void*>(4);
-        const auto size         = registers->GetGpr<uint64_t>(5);
-        const auto source       = registers->GetGpr<void*>(6);
+        DEBUG_PRINT("sysDbgWriteProcessMemoryHook2\n");
 
         DEBUG_PRINT("pid 0x%llx\n", pid);
         DEBUG_PRINT("destination 0x%llx\n", destination);
         DEBUG_PRINT("size 0x%llx\n", size);
         DEBUG_PRINT("source 0x%llx\n", source);
-
-        DEBUG_PRINT("registers\n");
-        DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
-        DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
-        DEBUG_PRINT("r5: 0x%016llx\n", registers->r5);
-        DEBUG_PRINT("r6: 0x%016llx\n", registers->r6);
-
-
 
         auto syscall8 = SYSCALL_F(int(*)(uint64_t function, uint64_t param1, uint64_t param2, uint64_t param3, uint64_t param4, uint64_t param5, uint64_t param6, uint64_t param7), 8);
         DEBUG_PRINT("calling syscall8 with parameters [arg1] = 0x%llX [arg2] = 0x%llX [arg3] = 0x%llX [arg4] = 0x%llX [arg5] = 0x%llX [arg6] = 0x%llX [arg7] = 0x%llX [arg8] = 0x%llX\n", 0x7777, 0x0032, pid, destination, source, size, 0, 0);
@@ -474,8 +473,13 @@ void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
         // BUG(roulette): crashes when calling syscall8
         auto error = syscall8((uint64_t)0x7777, (uint64_t)0x0032, (uint64_t)pid, (uint64_t)destination, (uint64_t)source, (uint64_t)size, (uint64_t)0, (uint64_t)0);
         DEBUG_PRINT("syscall8 returned = 0x%llX\n", error);
-
     }
+#endif
+
+    DEBUG_PRINT("Calling original\n");
+    int error = CallByOpd<int>(sysDbgWriteProcessMemoryOriginal, pid, destination, size, source);
+    DEBUG_PRINT("returning = 0x%llX\n", error);
+    return error;
 }
 #endif
 
@@ -488,8 +492,9 @@ void InstallHooks()
 
 #if 1
     DEBUG_PRINT("HookOpCode::AttachDetour\n");
-    //HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
+    HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
     HookOpCode::AttachDetour(g_LibLV2.ppuLoaderLoadProgramBranch, PpuLoaderLoadProgramHook);
-    //HookOpCode::AttachDetour(0x8000000000280804, sysDbgWriteProcessMemoryMid);
+
+    DetourSyscall(SYS_DBG_WRITE_PROCESS_MEMORY, (OPD_t*)HookSyscallPrepareDispatch, &sysDbgWriteProcessMemoryOriginal);
 #endif
 }
