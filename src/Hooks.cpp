@@ -430,7 +430,7 @@ void PpuThreadMsgInterruptExceptionHook(HookOpCode::HookContext* registers)
 }
 
 
-#if 1
+#if 0
 OPD_t* sysDbgWriteProcessMemoryOriginal = nullptr;
 void DetourSyscall(uint32_t syscallIndex, OPD_t* fn, OPD_t** original)
 {
@@ -494,7 +494,6 @@ void InstallHooks()
     DEBUG_PRINT("HookOpCode::AttachDetour\n");
     HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
     HookOpCode::AttachDetour(g_LibLV2.ppuLoaderLoadProgramBranch, PpuLoaderLoadProgramHook);
-
-    DetourSyscall(SYS_DBG_WRITE_PROCESS_MEMORY, (OPD_t*)HookSyscallPrepareDispatch, &sysDbgWriteProcessMemoryOriginal);
+    //DetourSyscall(SYS_DBG_WRITE_PROCESS_MEMORY, (OPD_t*)HookSyscallPrepareDispatch, &sysDbgWriteProcessMemoryOriginal);
 #endif
 }

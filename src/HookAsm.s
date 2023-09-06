@@ -309,7 +309,7 @@ HookOpCodePrepareDispatch:
 
 
 
-
+/*
 .text
 .p2align 2
 .globl  HookSyscallPrepareDispatch
@@ -347,3 +347,5 @@ HookSyscallPrepareDispatch:
     ld %r0, 32(%r1)
     mtlr %r0
     blr
+
+	*/
