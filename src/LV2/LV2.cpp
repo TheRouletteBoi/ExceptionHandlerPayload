@@ -310,19 +310,21 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     }
 #endif
 
-    DEBUG_PRINT("lv2ConsoleGetInstance_opd 0x%llx\n",                g_LibLV2.lv2ConsoleGetInstance_opd);
-    DEBUG_PRINT("lv2ConsoleWrite_opd 0x%llx\n",                       g_LibLV2.lv2ConsoleWrite_opd);
-    DEBUG_PRINT("lv2ConsoleWriteAsync_opd 0x%llx\n",                 g_LibLV2.lv2ConsoleWriteAsync_opd);
-    DEBUG_PRINT("lv2ConsolePutc_opd 0x%llx\n",                        g_LibLV2.lv2ConsolePutc_opd);
-    DEBUG_PRINT("lv2ConsoleFlush_opd 0x%llx\n",                       g_LibLV2.lv2ConsoleFlush_opd);
-    DEBUG_PRINT("lv2Clprintf_opd 0x%llx\n",                            g_LibLV2.lv2Clprintf_opd);
+    DEBUG_PRINT("lv2ConsoleGetInstance_opd 0x%llx\n",                   g_LibLV2.lv2ConsoleGetInstance_opd);
+    DEBUG_PRINT("lv2ConsoleWrite_opd 0x%llx\n",                         g_LibLV2.lv2ConsoleWrite_opd);
+    DEBUG_PRINT("lv2ConsoleWriteAsync_opd 0x%llx\n",                    g_LibLV2.lv2ConsoleWriteAsync_opd);
+    DEBUG_PRINT("lv2ConsolePutc_opd 0x%llx\n",                          g_LibLV2.lv2ConsolePutc_opd);
+    DEBUG_PRINT("lv2ConsoleFlush_opd 0x%llx\n",                         g_LibLV2.lv2ConsoleFlush_opd);
+    DEBUG_PRINT("lv2Clprintf_opd 0x%llx\n",                             g_LibLV2.lv2Clprintf_opd);
     DEBUG_PRINT("lv2_kern_tty_write 0x%llx\n",                          g_LibLV2.lv2_kern_tty_write);
-    DEBUG_PRINT("pageAllocate_opd 0x%llx\n",                           g_LibLV2.pageAllocate_opd);
-    DEBUG_PRINT("pageFree_opd 0x%llx\n",                               g_LibLV2.pageFree_opd);
-    DEBUG_PRINT("kmemExportToProc_opd 0x%llx\n",                     g_LibLV2.kmemExportToProc_opd);
+    DEBUG_PRINT("pageAllocate_opd 0x%llx\n",                            g_LibLV2.pageAllocate_opd);
+    DEBUG_PRINT("pageFree_opd 0x%llx\n",                                g_LibLV2.pageFree_opd);
+    DEBUG_PRINT("kmemExportToProc_opd 0x%llx\n",                        g_LibLV2.kmemExportToProc_opd);
     DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",                   g_LibLV2.kmemUnexportFromProc_opd);
-    DEBUG_PRINT("ppuThreadMsgInterruptException_opd 0x%llx\n",      g_LibLV2.ppuThreadMsgInterruptException_opd);
-    DEBUG_PRINT("ppuLoaderLoadProgram_opd 0x%llx\n",                 g_LibLV2.ppuLoaderLoadProgram_opd);
+    DEBUG_PRINT("ppuThreadMsgInterruptException_opd 0x%llx\n",          g_LibLV2.ppuThreadMsgInterruptException_opd);
+    DEBUG_PRINT("ppuLoaderLoadProgram_opd 0x%llx\n",                    g_LibLV2.ppuLoaderLoadProgram_opd);
+    DEBUG_PRINT("ppuThreadMsgInterruptException3rdInstructionAddress 0x%llx\n",                 g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress);
+    DEBUG_PRINT("ppuLoaderLoadProgramBranch 0x%llx\n",                  g_LibLV2.ppuLoaderLoadProgramBranch);
 
     return LIB_LV2_INIT_SUCCESS;
 }
