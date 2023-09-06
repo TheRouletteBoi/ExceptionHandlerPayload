@@ -66,6 +66,9 @@ static inline uint32_t process_read_memory(lv2::process* process, void* destinat
     return STATIC_FN(&process_read_memory, g_LibLV2.processReadMemory_opd)(process, destination, source, size);
 }
 
+/* 
+* Extends the kernel stack of the syscall in 4096 bytes. Can only be called once in a syscall
+**/
 static inline void extend_kstack(uint64_t a1)
 {
     return STATIC_FN(&extend_kstack, g_LibLV2.extendKstack_opd)(a1);
