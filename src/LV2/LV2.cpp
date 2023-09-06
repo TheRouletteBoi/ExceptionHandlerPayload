@@ -285,6 +285,17 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         }
     );
 
+    MAKE_PATTERN("39 1F ?? ?? 39 3F ?? ?? 39 5F ?? ?? FB A1 ?? ??").FindCodeMatch(
+        LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
+        {
+            const auto branchAddress = PPCGetBranchAddress(result + 0x10);
+
+            cxt.ppu_loader_load_program_bl_address = branchAddress;
+            cxt.ppu_loader_load_program_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
+
+            return Signature::CallbackStatus::SCANNER_STOP;
+        }
+    );
 
     
         
@@ -311,6 +322,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     DEBUG_PRINT("kmem_export_to_proc_opd 0x%llx\n",                     g_LibLV2.kmem_export_to_proc_opd);
     DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",                   g_LibLV2.kmem_unexport_from_proc_opd);
     DEBUG_PRINT("ppu_thread_msg_interrupt_exception_opd 0x%llx\n",      g_LibLV2.ppu_thread_msg_interrupt_exception_opd);
+    DEBUG_PRINT("ppu_loader_load_program_opd 0x%llx\n",                 g_LibLV2.ppu_loader_load_program_opd);
 
     return LIB_LV2_INIT_SUCCESS;
 }

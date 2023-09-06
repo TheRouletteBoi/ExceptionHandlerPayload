@@ -325,9 +325,7 @@ extern "C" void SystemCallHookProcess(SystemCallContext* syscall)
 #endif
 }
 
-
-#if 0
-
+#if OVERRIDE_EXECUTABLE_PATH
 char g_OverrideSprxPathFrom[1000];
 char g_OverrideSprxPathTo[1000];
 
@@ -357,9 +355,48 @@ void syscall_override_eboot_path(const char* path, bool toggle)
     strncpy(g_OverrideExecutablePath, path);
     g_OverrideExecutableToggle = toogle;
 }
+#endif
 
-int PpuLoaderLoadProgramHook(lv2::process* process, int fd, const char* path, int r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10, uint64_t sp_70)
+
+// TODO(Roulette): move function to process header
+static inline uint32_t PpuLoaderLoadProgram(uint64_t process, uint64_t fd, uint64_t path, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10, uint64_t stackPointer_0x70)
 {
+    return STATIC_FN(&PpuLoaderLoadProgram, g_LibLV2.ppu_loader_load_program_opd)(process, fd, path, r6, r7, r8, r9, r10, stackPointer_0x70);
+}
+
+void PpuLoaderLoadProgramHook(HookOpCode::HookContext* registers)
+{
+    // Original instruction at 0x80000000002725B0 is 'bl ppu_loader_load_program'
+    // BUG(Roulette): last register may be wrong
+    uint32_t error = PpuLoaderLoadProgram(registers->r3, registers->r4, registers->r5, registers->r6, registers->r7, registers->r8, registers->r9, registers->r10, registers->r29);
+
+    DEBUG_PRINT("PpuLoaderLoadProgramHook\n");
+    DEBUG_PRINT("error 0x%llX\n", error);
+
+    const auto process  = registers->GetGpr<lv2::process*>(3);
+    const auto fd       = registers->GetGpr<int>(4);
+    const auto path     = registers->GetGpr<const char*>(5);
+    const auto r6       = registers->GetGpr<int>(6);
+    const auto r7       = registers->GetGpr<uint64_t>(7);
+    const auto r8       = registers->GetGpr<uint64_t>(8);
+    const auto r9       = registers->GetGpr<uint64_t>(9);
+    const auto r10      = registers->GetGpr<uint64_t>(10);
+    const auto stackPointer_0x70       = registers->GetGpr<uint64_t>(29);
+
+    DEBUG_PRINT("process: 0x%016llX\n", process);
+    DEBUG_PRINT("fd: 0x%016llx\n", fd);
+    DEBUG_PRINT("path: 0x%016llx\n", path);
+    DEBUG_PRINT("r6: 0x%016llx\n", r6);
+    DEBUG_PRINT("r7: 0x%016llx\n", r7);
+    DEBUG_PRINT("r8: 0x%016llx\n", r8);
+    DEBUG_PRINT("r9: 0x%016llx\n", r9);
+    DEBUG_PRINT("r10: 0x%016llx\n", r10);
+    DEBUG_PRINT("stackPointer_0x70: 0x%016llx\n", stackPointer_0x70);
+
+    // return our result??
+    registers->r3 = error;
+
+#if OVERRIDE_EXECUTABLE_PATH
     if (g_OverrideExecutableToggle)
     {
         // check that we are a game
@@ -372,10 +409,9 @@ int PpuLoaderLoadProgramHook(lv2::process* process, int fd, const char* path, in
             }
         }
     }
-}
 #endif
+}
 
-#if 1
 void PpuThreadMsgInterruptExceptionHook(HookOpCode::HookContext* registers)
 {
     // Original instruction at 0x800000000026C348 is 'std       r25, 0xB0+var_38(r1)'
@@ -392,7 +428,6 @@ void PpuThreadMsgInterruptExceptionHook(HookOpCode::HookContext* registers)
     DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
     DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
 }
-#endif 
 
 #if 0
 void sysDbgWriteProcessMemoryMid(HookOpCode::HookContext* registers)
@@ -454,7 +489,7 @@ void InstallHooks()
 #if 1
     DEBUG_PRINT("HookOpCode::AttachDetour\n");
     //HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
-    //HookOpCode::AttachDetour(g_LibLV2.ppu_loader_load_program_bl_address, PpuLoaderLoadProgramHook);
+    HookOpCode::AttachDetour(g_LibLV2.ppu_loader_load_program_bl_address, PpuLoaderLoadProgramHook);
     //HookOpCode::AttachDetour(0x8000000000280804, sysDbgWriteProcessMemoryMid);
 #endif
 }

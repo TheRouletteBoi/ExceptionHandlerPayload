@@ -48,10 +48,12 @@ struct LibLV2Context
     OPD_t* get_process_object_by_id_opd;
     OPD_t* id_table_unreserve_id_opd;
     OPD_t* extend_kstack_opd;
+    OPD_t* ppu_loader_load_program_opd;
 
     uint32_t* systemCallDispatchBranch;
     uint32_t* ppuThreadMsgInterruptExceptionBranch;
     uint64_t ppuThreadMsgInterruptException3rdInstructionAddress;
+    uint64_t ppu_loader_load_program_bl_address;
 
     int(*lv2_kern_tty_write)(const char* text, size_t length);
     void(*printf)(const char* fmt, ... );
