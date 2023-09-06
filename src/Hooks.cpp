@@ -361,7 +361,7 @@ void syscall_override_eboot_path(const char* path, bool toggle)
 // TODO(Roulette): move function to process header
 static inline uint32_t PpuLoaderLoadProgram(uint64_t process, uint64_t fd, uint64_t path, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10, uint64_t stackPointer_0x70)
 {
-    return STATIC_FN(&PpuLoaderLoadProgram, g_LibLV2.ppu_loader_load_program_opd)(process, fd, path, r6, r7, r8, r9, r10, stackPointer_0x70);
+    return STATIC_FN(&PpuLoaderLoadProgram, g_LibLV2.ppuLoaderLoadProgram_opd)(process, fd, path, r6, r7, r8, r9, r10, stackPointer_0x70);
 }
 
 void PpuLoaderLoadProgramHook(HookOpCode::HookContext* registers)
@@ -489,7 +489,7 @@ void InstallHooks()
 #if 1
     DEBUG_PRINT("HookOpCode::AttachDetour\n");
     //HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
-    HookOpCode::AttachDetour(g_LibLV2.ppu_loader_load_program_bl_address, PpuLoaderLoadProgramHook);
+    HookOpCode::AttachDetour(g_LibLV2.ppuLoaderLoadProgramBranch, PpuLoaderLoadProgramHook);
     //HookOpCode::AttachDetour(0x8000000000280804, sysDbgWriteProcessMemoryMid);
 #endif
 }

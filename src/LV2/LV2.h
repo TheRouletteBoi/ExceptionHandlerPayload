@@ -32,28 +32,28 @@ struct LibLV2Context
     OPD_t** systemCallTable;
 
     // TOC function pointers.
-    OPD_t* lv2_console_get_instance_opd;
-    OPD_t* lv2_console_write_opd;
-    OPD_t* lv2_console_write_async_opd;
-    OPD_t* lv2_console_putc_opd;
-    OPD_t* lv2_console_flush_opd;
-    OPD_t* lv2_clprintf_opd;
-    OPD_t* page_allocate_opd;
-    OPD_t* page_free_opd;
-    OPD_t* kmem_export_to_proc_opd;
-    OPD_t* kmem_unexport_from_proc_opd;
-    OPD_t* ppu_thread_msg_interrupt_exception_opd;
-    OPD_t* process_write_memory_opd;
-    OPD_t* process_read_memory_opd;
-    OPD_t* get_process_object_by_id_opd;
-    OPD_t* id_table_unreserve_id_opd;
-    OPD_t* extend_kstack_opd;
-    OPD_t* ppu_loader_load_program_opd;
+    OPD_t* lv2ConsoleGetInstance_opd;
+    OPD_t* lv2ConsoleWrite_opd;
+    OPD_t* lv2ConsoleWriteAsync_opd;
+    OPD_t* lv2ConsolePutc_opd;
+    OPD_t* lv2ConsoleFlush_opd;
+    OPD_t* lv2Clprintf_opd;
+    OPD_t* pageAllocate_opd;
+    OPD_t* pageFree_opd;
+    OPD_t* kmemExportToProc_opd;
+    OPD_t* kmemUnexportFromProc_opd;
+    OPD_t* ppuThreadMsgInterruptException_opd;
+    OPD_t* processWriteMemory_opd;
+    OPD_t* processReadMemory_opd;
+    OPD_t* getProcessObjectById_opd;
+    OPD_t* idTableUnreserveId_opd;
+    OPD_t* extendKstack_opd;
+    OPD_t* ppuLoaderLoadProgram_opd;
 
     uint32_t* systemCallDispatchBranch;
     uint32_t* ppuThreadMsgInterruptExceptionBranch;
     uint64_t ppuThreadMsgInterruptException3rdInstructionAddress;
-    uint64_t ppu_loader_load_program_bl_address;
+    uint64_t ppuLoaderLoadProgramBranch;
 
     int(*lv2_kern_tty_write)(const char* text, size_t length);
     void(*printf)(const char* fmt, ... );

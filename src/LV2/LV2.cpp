@@ -35,10 +35,10 @@ void LibLV2DebugPrint(const char* format, ...)
 {
 #ifdef HAS_DEBUG_PRINTS_WITH_DEBUG_COBRA
     g_LibLV2.lv2_kern_tty_write = (decltype(g_LibLV2.lv2_kern_tty_write))0x8000000000362288;
-    g_LibLV2.lv2_clprintf_opd = (OPD_t*)0x800000000032e268;
+    g_LibLV2.lv2Clprintf_opd = (OPD_t*)0x800000000032e268;
 #endif
 
-    if (g_LibLV2.lv2_kern_tty_write && g_LibLV2.lv2_clprintf_opd)
+    if (g_LibLV2.lv2_kern_tty_write && g_LibLV2.lv2Clprintf_opd)
     {
         va_list argList;
         va_start(argList, format);
@@ -131,7 +131,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
 
                 if (clPrintfBranchAddress)
                 {
-                    cxt.lv2_clprintf_opd = Signature::FindProcedureDescriptor(clPrintfBranchAddress, cxt.kernelLastOPDEntry);
+                    cxt.lv2Clprintf_opd = Signature::FindProcedureDescriptor(clPrintfBranchAddress, cxt.kernelLastOPDEntry);
                 }
 
                 cxt.printf = STATIC_FN(cxt.printf, Signature::FindProcedureDescriptor(printfBranchAddress, cxt.kernelLastOPDEntry));
@@ -158,7 +158,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("E9 22 ?? ?? 88 09 00 00 2F 80 00 00 41 9E ?? ?? E8 62").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.lv2_console_get_instance_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
+            cxt.lv2ConsoleGetInstance_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -171,14 +171,14 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
             if (cxt.firmwareVersion < lv1::ps3_firmware_version(0, 9, 1))
                 offset = 0x60UL;
             
-            if (cxt.lv2_console_write_opd == 0)
+            if (cxt.lv2ConsoleWrite_opd == 0)
             {
-                cxt.lv2_console_write_opd = Signature::FindProcedureDescriptor(result - offset, cxt.kernelLastOPDEntry);
+                cxt.lv2ConsoleWrite_opd = Signature::FindProcedureDescriptor(result - offset, cxt.kernelLastOPDEntry);
 
                 return Signature::CallbackStatus::SCANNER_CONTINUE;
             }
 
-            cxt.lv2_console_write_async_opd = Signature::FindProcedureDescriptor(result - offset, cxt.kernelLastOPDEntry);
+            cxt.lv2ConsoleWriteAsync_opd = Signature::FindProcedureDescriptor(result - offset, cxt.kernelLastOPDEntry);
 
             return Signature::CallbackStatus::SCANNER_STOP;
         }
@@ -187,7 +187,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("7C 80 23 78 7C A9 2B 78 7C CB 33 78 7C E8 3B 78 7C 64 1B 78 7C 05 03 78 7D 26 4B 78 7D 67 5B 78").FindCodeMatch(
         LV2_BASE, 0x80000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.page_allocate_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
+            cxt.pageAllocate_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -199,7 +199,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
 
             if (branchAddress)
             {
-                cxt.page_free_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
+                cxt.pageFree_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
             }
 
             return Signature::CallbackStatus::SCANNER_STOP;
@@ -209,7 +209,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("7F A0 48 00 3D 20 80 01 7C DF 33 78 2F 25 00 00").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.kmem_export_to_proc_opd = Signature::FindProcedureDescriptor(result - 0x18, cxt.kernelLastOPDEntry);
+            cxt.kmemExportToProc_opd = Signature::FindProcedureDescriptor(result - 0x18, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -221,7 +221,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
 
             if (branchAddress)
             {
-                cxt.kmem_unexport_from_proc_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
+                cxt.kmemUnexportFromProc_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
             }
 
             return Signature::CallbackStatus::SCANNER_STOP;
@@ -232,7 +232,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
             cxt.ppuThreadMsgInterruptException3rdInstructionAddress = (result - 0x20);
-            cxt.ppu_thread_msg_interrupt_exception_opd = Signature::FindProcedureDescriptor(result - 0x28, cxt.kernelLastOPDEntry);   
+            cxt.ppuThreadMsgInterruptException_opd = Signature::FindProcedureDescriptor(result - 0x28, cxt.kernelLastOPDEntry);   
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -248,7 +248,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("7C BE ?? ?? 7C 9D ?? ?? 7C DC ?? ?? 7C FB ?? ?? 63 FF ?? ?? 7C 7A ?? ?? 40 82 ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.process_write_memory_opd = Signature::FindProcedureDescriptor(result - 0x2C, cxt.kernelLastOPDEntry);
+            cxt.processWriteMemory_opd = Signature::FindProcedureDescriptor(result - 0x2C, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -256,7 +256,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("F8 21 ?? ?? 7C 08 ?? ?? 2C 25 ?? ?? FB E1 ?? ?? 3F E0 ?? ?? FB 61 ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.process_read_memory_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
+            cxt.processReadMemory_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -264,7 +264,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("4B ?? ?? ?? 2F 83 ?? ?? 7F A4 ?? ?? 7F 65 ?? ?? 7F 86 ?? ?? 38 E0 ?? ?? 41 ?? ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.get_process_object_by_id_opd = Signature::FindProcedureDescriptor(result - 0x24, cxt.kernelLastOPDEntry);
+            cxt.getProcessObjectById_opd = Signature::FindProcedureDescriptor(result - 0x24, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -272,7 +272,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("7C 68 ?? ?? 7C 20 04 AC 38 00 ?? ?? 7D 40 ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.id_table_unreserve_id_opd = Signature::FindProcedureDescriptor(result - 0x1C, cxt.kernelLastOPDEntry);
+            cxt.idTableUnreserveId_opd = Signature::FindProcedureDescriptor(result - 0x1C, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -280,7 +280,7 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("F8 21 ?? ?? 7C 08 ?? ?? FB 81 ?? ?? F8 01 ?? ?? FB A1 ?? ?? 7C 7D ?? ?? 4B ?? ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            cxt.extend_kstack_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
+            cxt.extendKstack_opd = Signature::FindProcedureDescriptor(result, cxt.kernelLastOPDEntry);
             return Signature::CallbackStatus::SCANNER_STOP;
         }
     );
@@ -290,8 +290,8 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
         {
             const auto branchAddress = PPCGetBranchAddress(result + 0x10);
 
-            cxt.ppu_loader_load_program_bl_address = branchAddress;
-            cxt.ppu_loader_load_program_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
+            cxt.ppuLoaderLoadProgramBranch = branchAddress;
+            cxt.ppuLoaderLoadProgram_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
 
             return Signature::CallbackStatus::SCANNER_STOP;
         }
@@ -300,29 +300,29 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     
         
 #ifndef HAS_DEBUG_PRINTS_WITH_DEBUG_COBRA
-    if (g_LibLV2.lv2_console_get_instance_opd           == 0 ||
-        g_LibLV2.lv2_console_write_opd                  == 0 || 
-        g_LibLV2.lv2_console_write_async_opd            == 0 || 
+    if (g_LibLV2.lv2ConsoleGetInstance_opd           == 0 ||
+        g_LibLV2.lv2ConsoleWrite_opd                  == 0 || 
+        g_LibLV2.lv2ConsoleWriteAsync_opd            == 0 || 
         g_LibLV2.printf                                 == 0 ||
-        g_LibLV2.ppu_thread_msg_interrupt_exception_opd == 0)
+        g_LibLV2.ppuThreadMsgInterruptException_opd == 0)
     {
         return LIB_LV2_ADDRESS_NOT_FOUND;
     }
 #endif
 
-    DEBUG_PRINT("lv2_console_get_instance_opd 0x%llx\n",                g_LibLV2.lv2_console_get_instance_opd);
-    DEBUG_PRINT("lv2_console_write_opd 0x%llx\n",                       g_LibLV2.lv2_console_write_opd);
-    DEBUG_PRINT("lv2_console_write_async_opd 0x%llx\n",                 g_LibLV2.lv2_console_write_async_opd);
-    DEBUG_PRINT("lv2_console_putc_opd 0x%llx\n",                        g_LibLV2.lv2_console_putc_opd);
-    DEBUG_PRINT("lv2_console_flush_opd 0x%llx\n",                       g_LibLV2.lv2_console_flush_opd);
-    DEBUG_PRINT("lv2_clprintf_opd 0x%llx\n",                            g_LibLV2.lv2_clprintf_opd);
+    DEBUG_PRINT("lv2ConsoleGetInstance_opd 0x%llx\n",                g_LibLV2.lv2ConsoleGetInstance_opd);
+    DEBUG_PRINT("lv2ConsoleWrite_opd 0x%llx\n",                       g_LibLV2.lv2ConsoleWrite_opd);
+    DEBUG_PRINT("lv2ConsoleWriteAsync_opd 0x%llx\n",                 g_LibLV2.lv2ConsoleWriteAsync_opd);
+    DEBUG_PRINT("lv2ConsolePutc_opd 0x%llx\n",                        g_LibLV2.lv2ConsolePutc_opd);
+    DEBUG_PRINT("lv2ConsoleFlush_opd 0x%llx\n",                       g_LibLV2.lv2ConsoleFlush_opd);
+    DEBUG_PRINT("lv2Clprintf_opd 0x%llx\n",                            g_LibLV2.lv2Clprintf_opd);
     DEBUG_PRINT("lv2_kern_tty_write 0x%llx\n",                          g_LibLV2.lv2_kern_tty_write);
-    DEBUG_PRINT("page_allocate_opd 0x%llx\n",                           g_LibLV2.page_allocate_opd);
-    DEBUG_PRINT("page_free_opd 0x%llx\n",                               g_LibLV2.page_free_opd);
-    DEBUG_PRINT("kmem_export_to_proc_opd 0x%llx\n",                     g_LibLV2.kmem_export_to_proc_opd);
-    DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",                   g_LibLV2.kmem_unexport_from_proc_opd);
-    DEBUG_PRINT("ppu_thread_msg_interrupt_exception_opd 0x%llx\n",      g_LibLV2.ppu_thread_msg_interrupt_exception_opd);
-    DEBUG_PRINT("ppu_loader_load_program_opd 0x%llx\n",                 g_LibLV2.ppu_loader_load_program_opd);
+    DEBUG_PRINT("pageAllocate_opd 0x%llx\n",                           g_LibLV2.pageAllocate_opd);
+    DEBUG_PRINT("pageFree_opd 0x%llx\n",                               g_LibLV2.pageFree_opd);
+    DEBUG_PRINT("kmemExportToProc_opd 0x%llx\n",                     g_LibLV2.kmemExportToProc_opd);
+    DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",                   g_LibLV2.kmemUnexportFromProc_opd);
+    DEBUG_PRINT("ppuThreadMsgInterruptException_opd 0x%llx\n",      g_LibLV2.ppuThreadMsgInterruptException_opd);
+    DEBUG_PRINT("ppuLoaderLoadProgram_opd 0x%llx\n",                 g_LibLV2.ppuLoaderLoadProgram_opd);
 
     return LIB_LV2_INIT_SUCCESS;
 }

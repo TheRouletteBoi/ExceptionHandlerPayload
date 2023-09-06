@@ -26,12 +26,12 @@ public:
 
 static inline int get_process_object_by_id(sys_pid_t pid, process** outProcessObject, void** outProcessHandle)
 {
-    return STATIC_FN(&get_process_object_by_id, g_LibLV2.get_process_object_by_id_opd)(pid, outProcessObject, outProcessHandle);
+    return STATIC_FN(&get_process_object_by_id, g_LibLV2.getProcessObjectById_opd)(pid, outProcessObject, outProcessHandle);
 }
 
 static inline int id_table_unreserve_id(void* objectList, void* processHandle)
 {
-    return STATIC_FN(&id_table_unreserve_id, g_LibLV2.id_table_unreserve_id_opd)(objectList, processHandle);
+    return STATIC_FN(&id_table_unreserve_id, g_LibLV2.idTableUnreserveId_opd)(objectList, processHandle);
 }
 
 static inline int unreserve_process_handle(void* processHandle)
@@ -58,17 +58,17 @@ static inline process* get_process_by_pid(sys_pid_t pid)
 
 static inline uint32_t process_write_memory(lv2::process* process, void* destination, void* source, size_t size, int flag)
 {
-    return STATIC_FN(&process_write_memory, g_LibLV2.process_write_memory_opd)(process, destination, source, size, flag);
+    return STATIC_FN(&process_write_memory, g_LibLV2.processWriteMemory_opd)(process, destination, source, size, flag);
 }
 
 static inline uint32_t process_read_memory(lv2::process* process, void* destination, void* source, size_t size)
 {
-    return STATIC_FN(&process_read_memory, g_LibLV2.process_read_memory_opd)(process, destination, source, size);
+    return STATIC_FN(&process_read_memory, g_LibLV2.processReadMemory_opd)(process, destination, source, size);
 }
 
 static inline void extend_kstack(uint64_t a1)
 {
-    return STATIC_FN(&extend_kstack, g_LibLV2.extend_kstack_opd)(a1);
+    return STATIC_FN(&extend_kstack, g_LibLV2.extendKstack_opd)(a1);
 }
 
 }
