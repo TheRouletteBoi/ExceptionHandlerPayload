@@ -288,10 +288,11 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     MAKE_PATTERN("39 1F ?? ?? 39 3F ?? ?? 39 5F ?? ?? FB A1 ?? ??").FindCodeMatch(
         LV2_BASE, 0x800000, g_LibLV2, +[](LibLV2Context& cxt, uint64_t result) -> Signature::CallbackStatus 
         {
-            const auto branchAddress = PPCGetBranchAddress(result + 0x10);
+            const auto branchLocation = result + 0x10;
+            const auto functionAddress = PPCGetBranchAddress(branchLocation);
 
-            cxt.ppuLoaderLoadProgramBranch = branchAddress;
-            cxt.ppuLoaderLoadProgram_opd = Signature::FindProcedureDescriptor(branchAddress, cxt.kernelLastOPDEntry);
+            cxt.ppuLoaderLoadProgramBranch = branchLocation;
+            cxt.ppuLoaderLoadProgram_opd = Signature::FindProcedureDescriptor(functionAddress, cxt.kernelLastOPDEntry);
 
             return Signature::CallbackStatus::SCANNER_STOP;
         }
@@ -300,11 +301,11 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     
         
 #ifndef HAS_DEBUG_PRINTS_WITH_DEBUG_COBRA
-    if (g_LibLV2.lv2ConsoleGetInstance_opd           == 0 ||
-        g_LibLV2.lv2ConsoleWrite_opd                  == 0 || 
-        g_LibLV2.lv2ConsoleWriteAsync_opd            == 0 || 
+    if (g_LibLV2.lv2ConsoleGetInstance_opd              == 0 ||
+        g_LibLV2.lv2ConsoleWrite_opd                    == 0 || 
+        g_LibLV2.lv2ConsoleWriteAsync_opd               == 0 || 
         g_LibLV2.printf                                 == 0 ||
-        g_LibLV2.ppuThreadMsgInterruptException_opd == 0)
+        g_LibLV2.ppuThreadMsgInterruptException_opd     == 0)
     {
         return LIB_LV2_ADDRESS_NOT_FOUND;
     }
@@ -321,10 +322,13 @@ uint64_t LibLV2Init(uint64_t TOC, uint64_t payloadTOC)
     DEBUG_PRINT("pageFree_opd 0x%llx\n",                                g_LibLV2.pageFree_opd);
     DEBUG_PRINT("kmemExportToProc_opd 0x%llx\n",                        g_LibLV2.kmemExportToProc_opd);
     DEBUG_PRINT("kmem_unexport_to_proc_opd 0x%llx\n",                   g_LibLV2.kmemUnexportFromProc_opd);
+
     DEBUG_PRINT("ppuThreadMsgInterruptException_opd 0x%llx\n",          g_LibLV2.ppuThreadMsgInterruptException_opd);
-    DEBUG_PRINT("ppuLoaderLoadProgram_opd 0x%llx\n",                    g_LibLV2.ppuLoaderLoadProgram_opd);
     DEBUG_PRINT("ppuThreadMsgInterruptException3rdInstructionAddress 0x%llx\n",                 g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress);
+    
+    DEBUG_PRINT("ppuLoaderLoadProgram_opd 0x%llx\n",                    g_LibLV2.ppuLoaderLoadProgram_opd);
     DEBUG_PRINT("ppuLoaderLoadProgramBranch 0x%llx\n",                  g_LibLV2.ppuLoaderLoadProgramBranch);
+    
 
     return LIB_LV2_INIT_SUCCESS;
 }
