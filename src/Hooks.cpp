@@ -366,6 +366,25 @@ static inline uint32_t PpuLoaderLoadProgram(uint64_t process, uint64_t fd, uint6
 
 void PpuLoaderLoadProgramHook(HookOpCode::HookContext* registers)
 {
+    /*
+    ROM:8000000000272584                 lwz       r6, 0x240+arg_1C(r1)
+    ROM:8000000000272588                 extsw     r4, r27       
+    ROM:800000000027258C                 mr        r5, r28       
+    ROM:8000000000272590                 extsw     r6, r6        
+    ROM:8000000000272594                 addi      r29, r31, 0x2E4
+    ROM:8000000000272598                 mr        r3, r31       
+    ROM:800000000027259C                 addi      r7, r1, 0x240+var_1A0
+    ROM:80000000002725A0                 addi      r8, r31, 0x388 
+    ROM:80000000002725A4                 addi      r9, r31, 0x330 
+    ROM:80000000002725A8                 addi      r10, r31, 0x2C0 
+    ROM:80000000002725AC                 std       r29, 0x240+var_1D0(r1)
+    ROM:80000000002725B0                 bl        ppu_loader_load_program            <---- We come from here.
+    ROM:80000000002725B4                 cmpwi     cr7, r3, 0
+    ROM:80000000002725B8                 mr        r30, r3
+    ROM:80000000002725BC                 bne       cr7, loc_80000000002728B4
+    */
+
+
     // Original instruction at 0x80000000002725B0 is 'bl ppu_loader_load_program'
     // BUG(Roulette): crashes 'stack overflow' last parameter may be wrong
     uint32_t error = PpuLoaderLoadProgram(registers->r3, registers->r4, registers->r5, registers->r6, registers->r7, registers->r8, registers->r9, registers->r10, registers->r29);
@@ -385,7 +404,7 @@ void PpuLoaderLoadProgramHook(HookOpCode::HookContext* registers)
 
     DEBUG_PRINT("process: 0x%016llX\n", process);
     DEBUG_PRINT("fd: 0x%016llx\n", fd);
-    DEBUG_PRINT("path: 0x%016llx\n", path);
+    DEBUG_PRINT("path: %s\n", path);
     DEBUG_PRINT("r6: 0x%016llx\n", r6);
     DEBUG_PRINT("r7: 0x%016llx\n", r7);
     DEBUG_PRINT("r8: 0x%016llx\n", r8);
@@ -427,6 +446,17 @@ void PpuThreadMsgInterruptExceptionHook(HookOpCode::HookContext* registers)
 
     DEBUG_PRINT("r3: 0x%016llX\n", registers->r3);
     DEBUG_PRINT("r4: 0x%016llx\n", registers->r4);
+}
+
+void createProcessCommonHook(HookOpCode::HookContext* registers)
+{
+    // Original instruction at 0x8000000000272470 is 'std       r18, 0x240+var_100(r1)'
+    *(uint64_t*)(registers->r1 + 0x140) = registers->r18;
+
+    DEBUG_PRINT("createProcessCommonHook\n");
+    const auto path   = registers->GetGpr<uint64_t>(6);
+
+    DEBUG_PRINT("path: %s\n", path);
 }
 
 
@@ -494,6 +524,7 @@ void InstallHooks()
     DEBUG_PRINT("HookOpCode::AttachDetour\n");
     HookOpCode::AttachDetour(g_LibLV2.ppuThreadMsgInterruptException3rdInstructionAddress, PpuThreadMsgInterruptExceptionHook);
     HookOpCode::AttachDetour(g_LibLV2.ppuLoaderLoadProgramBranch, PpuLoaderLoadProgramHook);
+    //HookOpCode::AttachDetour(0x8000000000272470, createProcessCommonHook);
     //DetourSyscall(SYS_DBG_WRITE_PROCESS_MEMORY, (OPD_t*)HookSyscallPrepareDispatch, &sysDbgWriteProcessMemoryOriginal);
 #endif
 }
